@@ -1,0 +1,63 @@
+// This file is part of the rust-for-it project.
+//
+// Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+// SPDX-License-Identifier: MIT
+
+use clap::{Arg, ArgAction, Command};
+use lazy_static::lazy_static;
+use regex::Regex;
+
+use super::network::TimeoutSeconds;
+
+fn parse_service_syntax(text: &str) -> Result<String, String> {
+    // Note: We are not using .to_socket_addrs() here because that
+    //       would do DNS queries, already.
+    static PATTERN: &str = r"^([^:]+):([1-9][0-9]{0,4})$";
+    lazy_static! {
+        static ref MATCHER: Regex = Regex::new(&PATTERN).unwrap();
+    }
+    match MATCHER.find(text) {
+        Some(_) => Ok(text.to_string()),
+        _ => Err(format!("does not match regular expression \"{PATTERN}\".")),
+    }
+}
+
+pub fn command() -> Command {
+    Command::new("rust-for-it")
+        .about("Wait for one or more services to be available before executing a command.")
+        .version("0.1.0")
+        .arg(
+            Arg::new("quiet")
+                .action(ArgAction::SetTrue)
+                .long("quiet")
+                .short('q')
+                .help("Do not output any status messages"),
+        )
+        .arg(
+            Arg::new("strict")
+                .action(ArgAction::SetTrue)
+                .long("strict")
+                .short('S')
+                .help("Only execute <command> if all services are found available [default: always executes]"),
+        )
+        .arg(
+            Arg::new("timeout_seconds")
+                .long("timeout")
+                .short('t')
+                .value_name("seconds")
+                .default_value("15")
+                .help("Timeout in seconds, 0 for no timeout")
+                .value_parser(clap::value_parser!(TimeoutSeconds)),
+        )
+        .arg(
+            Arg::new("services")
+                .action(ArgAction::Append)
+                .long("service")
+                .short('s')
+                .value_name("host:port")
+                .value_parser(parse_service_syntax)
+                .num_args(0..)
+                .help("Service to test via the TCP protocol; can be passed multiple times"),
+        )
+        .arg(Arg::new("command").num_args(0..))
+}

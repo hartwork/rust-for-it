@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 
 use std::io;
-use std::net::{IpAddr, Ipv4Addr};
 use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::result::Result;
 use std::thread::sleep;
@@ -34,6 +33,7 @@ fn resolve_address(host_and_port: &str, timeout: Duration) -> Result<SocketAddr,
 #[cfg(test)]
 #[test]
 fn test_resolve_address_for_valid() {
+    use std::net::{IpAddr, Ipv4Addr};
     let expected_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 631);
     assert_eq!(
         resolve_address("127.0.0.1:631", Duration::from_secs(1)).unwrap(),

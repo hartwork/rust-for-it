@@ -80,3 +80,101 @@ pub fn command() -> Command {
         )
         .arg(Arg::new("command").num_args(0..))
 }
+
+#[cfg(test)]
+#[test]
+fn test_command_for_defaults() {
+    let matches = command().get_matches_from(["rust-for-it"]);
+    assert_eq!(*matches.get_one::<bool>("quiet").unwrap(), false);
+    assert_eq!(*matches.get_one::<bool>("strict").unwrap(), false);
+    assert_eq!(
+        *matches
+            .get_one::<TimeoutSeconds>("timeout_seconds")
+            .unwrap(),
+        15
+    );
+    assert!(matches
+        .get_many::<String>("services")
+        .unwrap_or_default()
+        .next()
+        .is_none());
+    assert!(matches
+        .get_many::<String>("command")
+        .unwrap_or_default()
+        .next()
+        .is_none());
+}
+
+#[cfg(test)]
+#[test]
+fn test_command_for_non_defaults_long_or_positional() {
+    let matches = command().get_matches_from([
+        "rust-for-it",
+        "--quiet",
+        "--strict",
+        "--timeout",
+        "123",
+        "--service",
+        "one:1",
+        "--service",
+        "two:2",
+        "--",
+        "echo",
+        "hello",
+        "--",
+        "world",
+    ]);
+
+    assert_eq!(*matches.get_one::<bool>("quiet").unwrap(), true);
+    assert_eq!(*matches.get_one::<bool>("strict").unwrap(), true);
+    assert_eq!(
+        *matches
+            .get_one::<TimeoutSeconds>("timeout_seconds")
+            .unwrap(),
+        123
+    );
+
+    let actual_services: Vec<_> = matches
+        .get_many::<String>("services")
+        .unwrap_or_default()
+        .map(|e| e.as_str())
+        .collect();
+    assert_eq!(actual_services, ["one:1", "two:2"]);
+
+    let actual_command: Vec<_> = matches
+        .get_many::<String>("command")
+        .unwrap_or_default()
+        .map(|e| e.as_str())
+        .collect();
+    assert_eq!(actual_command, ["echo", "hello", "--", "world"]);
+}
+
+#[cfg(test)]
+#[test]
+fn test_command_for_non_defaults_short() {
+    let matches = command().get_matches_from([
+        "rust-for-it",
+        "-q",
+        "-t",
+        "123",
+        "-s",
+        "one:1",
+        "-s",
+        "two:2",
+    ]);
+
+    assert_eq!(*matches.get_one::<bool>("quiet").unwrap(), true);
+    assert_eq!(
+        *matches
+            .get_one::<TimeoutSeconds>("timeout_seconds")
+            .unwrap(),
+        123
+    );
+
+    let actual_services: Vec<_> = matches
+        .get_many::<String>("services")
+        .unwrap_or_default()
+        .map(|e| e.as_str())
+        .collect();
+    assert_eq!(actual_services, ["one:1", "two:2"]);
+}

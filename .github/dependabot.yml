@@ -1,0 +1,16 @@
+# This file is part of the rust-for-it project.
+#
+# Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+# SPDX-License-Identifier: MIT
+
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

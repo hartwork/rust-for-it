@@ -1,0 +1,25 @@
+# This file is part of the rust-for-it project.
+#
+# Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+# SPDX-License-Identifier: MIT
+
+name: Enforce rustfmt-clean code
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 16 * * 5'  # Every Friday 4pm
+  workflow_dispatch:
+
+jobs:
+  enforce_rustfmt:
+    name: Enforce rustfmt-clean code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
+
+      - name: Enforce rustfmt-clean code
+        run: |-
+          cargo fmt
+          git diff --exit-code  # non-empty diff fails CI

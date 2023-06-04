@@ -1,0 +1,41 @@
+# This file is part of the rust-for-it project.
+#
+# Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+# SPDX-License-Identifier: MIT
+
+name: Build and test
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 16 * * 5'  # Every Friday 4pm
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build_and_test:
+    name: Build and test
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
+
+      - name: Build
+        run: |-
+          cargo build
+
+      - name: Test
+        run: |-
+          cargo test
+
+      - name: Smoke test CLI
+        run: |-
+          cargo run -- --version
+          cargo run -- --help

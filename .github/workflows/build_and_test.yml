@@ -29,7 +29,8 @@ jobs:
 
       - name: Build
         run: |-
-          cargo build --tests
+          cargo rustc         -- -D warnings
+          cargo rustc --tests -- -D warnings
 
       - name: Test
         run: |-

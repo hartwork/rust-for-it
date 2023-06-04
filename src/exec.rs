@@ -17,6 +17,15 @@ fn exit_code_from(exit_status: ExitStatus) -> i32 {
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_exit_code_from() {
+    assert_eq!(exit_code_from(ExitStatus::Exited(123)), 123);
+    assert_eq!(exit_code_from(ExitStatus::Signaled(2)), 130);
+    assert_eq!(exit_code_from(ExitStatus::Other(123)), 255);
+    assert_eq!(exit_code_from(ExitStatus::Undetermined), 255);
+}
+
 fn process_popen_result(
     popen_result: PopenResult<ExitStatus>,
     command: &str,

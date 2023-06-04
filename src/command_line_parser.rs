@@ -22,6 +22,27 @@ fn parse_service_syntax(text: &str) -> Result<String, String> {
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_parse_service_syntax_for_valid() {
+    assert_eq!(
+        parse_service_syntax("127.0.0.1:631"),
+        Ok(String::from("127.0.0.1:631"))
+    );
+    assert_eq!(parse_service_syntax("h:1"), Ok(String::from("h:1")));
+}
+
+#[cfg(test)]
+#[test]
+fn test_parse_service_syntax_for_invalid() {
+    let expected_error = Err(String::from(
+        "does not match regular expression \"^([^:]+):([1-9][0-9]{0,4})$\".",
+    ));
+    assert_eq!(parse_service_syntax("h:123456"), expected_error);
+    assert_eq!(parse_service_syntax("no colon"), expected_error);
+    assert_eq!(parse_service_syntax(":123"), expected_error);
+}
+
 pub fn command() -> Command {
     command!()
         .arg(

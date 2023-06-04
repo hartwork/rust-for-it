@@ -3,7 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use clap::{Arg, ArgAction, Command};
+use clap::{command, Arg, ArgAction, Command};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -23,9 +23,7 @@ fn parse_service_syntax(text: &str) -> Result<String, String> {
 }
 
 pub fn command() -> Command {
-    Command::new("rust-for-it")
-        .about("Wait for one or more services to be available before executing a command.")
-        .version("0.1.0")
+    command!()
         .arg(
             Arg::new("quiet")
                 .action(ArgAction::SetTrue)

@@ -9,5 +9,5 @@ license = "MIT"
 [dependencies]
 clap = { version = "4.3.1", features = ["cargo"] }
 lazy_static = "1.4.0"
-regex = "1.8.3"
+regex = "1.8.4"
 subprocess = "0.2.9"

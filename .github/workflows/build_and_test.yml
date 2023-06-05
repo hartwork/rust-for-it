@@ -25,9 +25,10 @@ jobs:
         runs-on: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.runs-on }}
     env:
-      RUSTFLAGS: "-D warnings"
+      RUSTFLAGS: "-Cinstrument-coverage -D warnings"
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
+      - name: Check out
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
 
       - name: Build
         run: |-
@@ -42,3 +43,49 @@ jobs:
         run: |-
           cargo run -- --version
           cargo run -- --help
+          cargo run -- -t1 -s google.com:80 -- echo 'Google is up'
+
+      - name: Install coverage tools
+        if: runner.os == 'Linux'
+        run: |-
+          set -x
+
+          # Install grcov
+          wget https://github.com/mozilla/grcov/releases/download/v0.8.18/grcov-x86_64-unknown-linux-gnu.tar.bz2
+          tar xf grcov-x86_64-unknown-linux-gnu.tar.bz2
+          chmod a+x grcov
+          mkdir -p ~/.local/bin/
+          mv grcov ~/.local/bin/
+          echo "${USER}/.local/bin/" >> "${GITHUB_PATH}"
+
+          # Install lcov + llvm for llvm-profdata
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends -V \
+            lcov \
+            llvm
+
+      - name: Render coverage report
+        if: runner.os == 'Linux'
+        run: |-
+          set -x
+          grcov_args=(
+            --binary-path target/debug
+            --source-dir src
+            --ignore '/*'
+            --branch
+
+            # grcov needs help finding llvm-profdata, apparently
+            --llvm-path "$(dirname "$(which llvm-profdata)")"
+          )
+          grcov "${grcov_args[@]}" -t html -o target/coverage/html .
+          grcov "${grcov_args[@]}" -t lcov -o target/coverage/lcov .
+          lcov --list target/coverage/lcov 2>/dev/null \
+            | tee target/coverage/summary.txt
+
+      - name: Store coverage report
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # v3.1.2
+        if: runner.os == 'Linux'
+        with:
+          name: coverage_${{ matrix.runs-on }}_${{ github.sha }}
+          path: target/coverage/
+          if-no-files-found: error

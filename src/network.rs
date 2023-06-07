@@ -58,7 +58,7 @@ fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std
         }
 
         // NOTE: This distinction is mainly for Windows where
-        //       TcpStream::connect_timeout([,,], Duration::MAX)
+        //       TcpStream::connect_timeout([..], Duration::MAX)
         //       seems to never return even when the target is available.
         //       Seems like a bug.
         let connect_res = if timeout == Duration::MAX {

@@ -32,6 +32,10 @@ jobs:
 
       - name: Build
         run: |-
+          set -x
+
+          rustc --version --verbose
+
           cargo build
           cargo build --tests
 

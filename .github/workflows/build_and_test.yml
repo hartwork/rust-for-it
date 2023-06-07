@@ -41,9 +41,14 @@ jobs:
 
       - name: Smoke test CLI
         run: |-
+          set -x
+
           cargo run -- --version
           cargo run -- --help
-          cargo run -- -t1 -s google.com:80 -- echo 'Google is up'
+
+          ! cargo run -- --strict -t1 -s google.com:1234 -- true
+          ! cargo run -- --strict -t1 -s somewhere.invalid:80 -- true
+          cargo run -- -t0 -s google.com:80 -- echo 'Google is up'
 
       - name: Install coverage tools
         if: runner.os == 'Linux'

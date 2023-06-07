@@ -56,7 +56,17 @@ fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std
             let error = io::Error::new(io::ErrorKind::TimedOut, "Time is up");
             return Err(error);
         }
-        let connect_res = TcpStream::connect_timeout(&address, timeout_left);
+
+        // NOTE: This distinction is mainly for Windows where
+        //       TcpStream::connect_timeout([,,], Duration::MAX)
+        //       seems to never return even when the target is available.
+        //       Seems like a bug.
+        let connect_res = if timeout == Duration::MAX {
+            TcpStream::connect(&address)
+        } else {
+            TcpStream::connect_timeout(&address, timeout_left)
+        };
+
         match connect_res {
             Ok(connection) => {
                 let _ = connection.shutdown(Shutdown::Both);

@@ -39,6 +39,10 @@ jobs:
           cargo build
           cargo build --tests
 
+      - name: Check whether Cargo.lock is in sync
+        run: |-
+          git diff --exit-code -- Cargo.lock  # non-empty diff fails CI
+
       - name: Test
         run: |-
           cargo test

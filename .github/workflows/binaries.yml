@@ -1,0 +1,56 @@
+# This file is part of the rust-for-it project.
+#
+# Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+# SPDX-License-Identifier: MIT
+
+name: Build release binaries
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 16 * * 5'  # Every Friday 4pm
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release_binaries:
+    name: Build release binaries
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
+
+      - name: Build
+        run: |-
+          set -x
+          rustc --version --verbose
+          cargo build --release
+          mv -v target/release/rust-for-it* .
+          rm rust-for-it.d  # to not go into artifact zip file
+
+      - name: Install UPX (macOS)
+        if: runner.os == 'macOS'
+        run: |-
+          brew install upx
+
+      - name: Compress binary using UPX (Linux or macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        run: |-
+          upx --best --no-lzma ./rust-for-it
+
+      - name: Store binary
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # v3.1.2
+        with:
+          name: rust-for-it_${{ matrix.runs-on }}_${{ github.sha }}
+          path: |
+            LICENSE
+            rust-for-it*
+          if-no-files-found: error

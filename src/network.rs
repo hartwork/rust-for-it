@@ -59,8 +59,8 @@ fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std
 
         // NOTE: This distinction is mainly for Windows where
         //       TcpStream::connect_timeout([..], Duration::MAX)
-        //       seems to never return even when the target is available.
-        //       Seems like a bug.
+        //       never returns even when the target is available.
+        //       https://github.com/rust-lang/rust/issues/112405
         let connect_res = if timeout == Duration::MAX {
             TcpStream::connect(&address)
         } else {

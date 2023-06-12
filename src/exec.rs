@@ -58,3 +58,15 @@ pub fn run_command(command: &str, args: Vec<&str>, verbose: bool) -> i32 {
     let popen_result = Exec::cmd(command).args(args.as_slice()).join();
     process_popen_result(popen_result, command, verbose)
 }
+
+#[cfg(test)]
+#[test]
+fn test_run_command_for_good() {
+    assert_eq!(run_command("sh", vec!["-c", "exit 0"], false), 0);
+}
+
+#[cfg(test)]
+#[test]
+fn test_run_command_for_bad() {
+    assert_eq!(run_command("sh", vec!["-c", "exit 123"], false), 123);
+}

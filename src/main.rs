@@ -44,6 +44,104 @@ where
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_middle_main() {
+    use std::net::TcpListener;
+
+    assert_eq!(middle_main(["rust-for-it", "--help"]), SUCCESS_CODE);
+    assert_eq!(middle_main(["rust-for-it", "--version"]), SUCCESS_CODE);
+
+    // Does bad usage produce exit code 2?
+    assert_eq!(
+        middle_main(["rust-for-it", "--no-such-argument"]),
+        USAGE_CODE
+    );
+
+    let port;
+    {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        port = listener.local_addr().unwrap().port();
+
+        // Do available services produce exit code 0?
+        assert_eq!(
+            middle_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
+            SUCCESS_CODE,
+        );
+
+        // Is the exit code forwarded properly?
+        assert_eq!(
+            middle_main([
+                "rust-for-it",
+                "-s",
+                format!("127.0.0.1:{port}").as_str(),
+                "--",
+                "sh",
+                "-c",
+                "exit 123"
+            ]),
+            123,
+        );
+
+        // Is the command executed and the exit code forwarded properly even with --strict?
+        assert_eq!(
+            middle_main([
+                "rust-for-it",
+                "--strict",
+                "-s",
+                format!("127.0.0.1:{port}").as_str(),
+                "--",
+                "sh",
+                "-c",
+                "exit 123"
+            ]),
+            123,
+        );
+
+        // NOTE: The listener stops listening when going out of scope
+    }
+
+    // Do unavailable services produce exit code 1?
+    assert_eq!(
+        middle_main([
+            "rust-for-it",
+            "-t1",
+            "-s",
+            format!("127.0.0.1:{port}").as_str()
+        ]),
+        1,
+    );
+    assert_eq!(
+        middle_main([
+            "rust-for-it",
+            "-t1",
+            "-s",
+            format!("127.0.0.1:{port}").as_str(),
+            "--",
+            "sh",
+            "-c",
+            "exit 123"
+        ]),
+        123,
+    );
+
+    // Does --strict prevent the execution of the command properly?
+    assert_eq!(
+        middle_main([
+            "rust-for-it",
+            "--strict",
+            "-t1",
+            "-s",
+            format!("127.0.0.1:{port}").as_str(),
+            "--",
+            "sh",
+            "-c",
+            "exit 123"
+        ]),
+        1,
+    );
+}
+
 fn innermost_main(matches: ArgMatches) -> i32 {
     let timeout_seconds: TimeoutSeconds = *matches.get_one("timeout_seconds").unwrap();
     let strict = *matches.get_one::<bool>("strict").unwrap();

@@ -54,7 +54,57 @@ fn process_popen_result(
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_process_popen_result() {
+    let command = "command1";
+    for verbose in [true, false] {
+        assert_eq!(
+            process_popen_result(Ok(ExitStatus::Exited(123)), command, verbose.clone()),
+            123
+        );
+
+        let permission_denied = std::io::Error::new(ErrorKind::PermissionDenied, "error1");
+        assert_eq!(
+            process_popen_result(
+                Err(PopenError::IoError(permission_denied)),
+                command,
+                verbose.clone()
+            ),
+            126
+        );
+
+        let not_found = std::io::Error::new(ErrorKind::NotFound, "error2");
+        assert_eq!(
+            process_popen_result(
+                Err(PopenError::IoError(not_found)),
+                command,
+                verbose.clone()
+            ),
+            127
+        );
+
+        let other_error = std::io::Error::new(ErrorKind::BrokenPipe, "error3");
+        assert_eq!(
+            process_popen_result(Err(PopenError::IoError(other_error)), command, verbose),
+            255
+        );
+    }
+}
+
 pub fn run_command(command: &str, args: Vec<&str>, verbose: bool) -> i32 {
     let popen_result = Exec::cmd(command).args(args.as_slice()).join();
     process_popen_result(popen_result, command, verbose)
+}
+
+#[cfg(test)]
+#[test]
+fn test_run_command_for_good() {
+    assert_eq!(run_command("sh", vec!["-c", "exit 0"], false), 0);
+}
+
+#[cfg(test)]
+#[test]
+fn test_run_command_for_bad() {
+    assert_eq!(run_command("sh", vec!["-c", "exit 123"], false), 123);
 }

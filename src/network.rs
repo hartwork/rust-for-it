@@ -82,6 +82,40 @@ fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_wait_for_tcp_socket_for_good() {
+    use std::net::TcpListener;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    let wait_result = wait_for_tcp_socket(
+        format!("127.0.0.1:{port}").as_str(),
+        Duration::from_secs(123),
+    );
+    assert!(wait_result.is_ok());
+
+    let wait_result = wait_for_tcp_socket(format!("127.0.0.1:{port}").as_str(), Duration::MAX);
+    assert!(wait_result.is_ok());
+}
+
+#[cfg(test)]
+#[test]
+fn test_wait_for_tcp_socket_for_bad() {
+    use std::net::TcpListener;
+    let port;
+    {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        port = listener.local_addr().unwrap().port();
+        // NOTE: The listener stops listening when going out of scope
+    }
+    let wait_result = wait_for_tcp_socket(
+        format!("127.0.0.1:{port}").as_str(),
+        Duration::from_millis(123),
+    );
+    assert!(wait_result.is_err());
+}
+
 pub fn wait_for_service(
     host_and_port: &str,
     timeout_seconds: TimeoutSeconds,
@@ -121,4 +155,40 @@ pub fn wait_for_service(
     }
 
     connect_result
+}
+
+#[cfg(test)]
+#[test]
+fn test_wait_for_service_for_good() {
+    use std::net::TcpListener;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    for verbose in [true, false] {
+        for timeout_seconds in [0, 1] {
+            let wait_result = wait_for_service(
+                format!("127.0.0.1:{port}").as_str(),
+                timeout_seconds,
+                verbose,
+            );
+            assert!(wait_result.is_ok());
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_wait_for_service_for_bad() {
+    use std::net::TcpListener;
+    let port;
+    {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        port = listener.local_addr().unwrap().port();
+        // NOTE: The listener stops listening when going out of scope
+    }
+
+    for verbose in [true, false] {
+        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1, verbose);
+        assert!(wait_result.is_err());
+    }
 }

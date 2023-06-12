@@ -11,6 +11,8 @@
 Python [wait-for-it](https://github.com/clarketm/wait-for-it)
 written in Rust 1.69+.
 
+It supports waiting for multiple services concurrently by default,
+and has a test coverage of >90%.
 If you do find bugs, [please file a report](https://github.com/hartwork/rust-for-it/issues).
 Thank you!
 

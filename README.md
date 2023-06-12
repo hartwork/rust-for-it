@@ -11,6 +11,8 @@
 Python [wait-for-it](https://github.com/clarketm/wait-for-it)
 written in Rust 1.69+.
 
+It supports waiting for multiple services concurrently by default,
+and has a test coverage of >90%.
 If you do find bugs, [please file a report](https://github.com/hartwork/rust-for-it/issues).
 Thank you!
 
@@ -35,9 +37,9 @@ $ rust-for-it --help
 ```console
 $ rust-for-it -t 2 -s localhost:631 -s 127.0.0.1:631 -- echo 'CUPS is very available'
 [*] Waiting 2 seconds for localhost:631...
-[+] localhost:631 is available after 0 seconds.
 [*] Waiting 2 seconds for 127.0.0.1:631...
 [+] 127.0.0.1:631 is available after 0 seconds.
+[+] localhost:631 is available after 0 seconds.
 CUPS is very available
 ```
 

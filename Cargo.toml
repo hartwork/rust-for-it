@@ -7,7 +7,7 @@ authors = ["Sebastian Pipping <sebastian@pipping.org>"]
 license = "MIT"
 
 [dependencies]
-clap = { version = "4.3.2", features = ["cargo"] }
+clap = { version = "4.3.3", features = ["cargo"] }
 lazy_static = "1.4.0"
 regex = "1.8.4"
 subprocess = "0.2.9"

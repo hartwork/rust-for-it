@@ -5,6 +5,9 @@
 
 use crate::exec::run_command;
 use crate::network::{wait_for_service, TimeoutSeconds};
+use clap::ArgMatches;
+use std::env::args_os;
+use std::ffi::OsString;
 use std::process::exit;
 use std::thread::{spawn, JoinHandle};
 
@@ -12,9 +15,36 @@ mod command_line_parser;
 mod exec;
 mod network;
 
-fn main() {
-    let matches = command_line_parser::command().get_matches();
+// Matches the two internal constants from [clap_builder-4.3.1]/src/util/mod.rs
+const SUCCESS_CODE: i32 = 0;
+const USAGE_CODE: i32 = 2;
 
+fn main() {
+    exit(middle_main(args_os()));
+}
+
+fn middle_main<I, T>(argv: I) -> i32
+where
+    // to match clap::Command.get_matches_from
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    let clap_result = command_line_parser::command().try_get_matches_from(argv);
+    match clap_result {
+        Ok(matches) => innermost_main(matches),
+        Err(e) => {
+            // This mimics clap::Error.exit minus the call to safe_exit
+            let _ = e.print();
+            if e.use_stderr() {
+                USAGE_CODE
+            } else {
+                SUCCESS_CODE
+            }
+        }
+    }
+}
+
+fn innermost_main(matches: ArgMatches) -> i32 {
     let timeout_seconds: TimeoutSeconds = *matches.get_one("timeout_seconds").unwrap();
     let strict = *matches.get_one::<bool>("strict").unwrap();
     let verbose = !*matches.get_one::<bool>("quiet").unwrap();
@@ -49,5 +79,5 @@ fn main() {
         exit_code = run_command(command, args, verbose);
     }
 
-    exit(exit_code);
+    exit_code
 }

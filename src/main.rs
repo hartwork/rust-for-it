@@ -15,10 +15,6 @@ mod command_line_parser;
 mod exec;
 mod network;
 
-// Matches the two internal constants from [clap_builder-4.3.1]/src/util/mod.rs
-const SUCCESS_CODE: i32 = 0;
-const USAGE_CODE: i32 = 2;
-
 fn main() {
     exit(middle_main(args_os()));
 }
@@ -35,11 +31,7 @@ where
         Err(e) => {
             // This mimics clap::Error.exit minus the call to safe_exit
             let _ = e.print();
-            if e.use_stderr() {
-                USAGE_CODE
-            } else {
-                SUCCESS_CODE
-            }
+            e.exit_code()
         }
     }
 }
@@ -49,14 +41,11 @@ where
 fn test_middle_main() {
     use std::net::TcpListener;
 
-    assert_eq!(middle_main(["rust-for-it", "--help"]), SUCCESS_CODE);
-    assert_eq!(middle_main(["rust-for-it", "--version"]), SUCCESS_CODE);
+    assert_eq!(middle_main(["rust-for-it", "--help"]), 0);
+    assert_eq!(middle_main(["rust-for-it", "--version"]), 0);
 
     // Does bad usage produce exit code 2?
-    assert_eq!(
-        middle_main(["rust-for-it", "--no-such-argument"]),
-        USAGE_CODE
-    );
+    assert_eq!(middle_main(["rust-for-it", "--no-such-argument"]), 2);
 
     let port;
     {
@@ -66,7 +55,7 @@ fn test_middle_main() {
         // Do available services produce exit code 0?
         assert_eq!(
             middle_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
-            SUCCESS_CODE,
+            0,
         );
 
         // Is the exit code forwarded properly?

@@ -7,6 +7,7 @@ use crate::exec::run_command;
 use crate::network::{wait_for_service, TimeoutSeconds};
 use anstream::RawStream;
 use clap::{ArgMatches, ColorChoice};
+use std::env;
 use std::env::args_os;
 use std::ffi::OsString;
 use std::process::exit;
@@ -20,7 +21,11 @@ fn main() {
     let argv = args_os();
     let stdout: &mut dyn RawStream = &mut std::io::stdout();
     let stderr: &mut dyn RawStream = &mut std::io::stderr();
-    let color_choice = ColorChoice::Auto;
+    let color_choice = if env::var("NO_COLOR").unwrap_or(String::new()).is_empty() {
+        ColorChoice::Auto
+    } else {
+        ColorChoice::Never
+    };
     let exit_code = middle_main(argv, stdout, stderr, color_choice);
     exit(exit_code);
 }

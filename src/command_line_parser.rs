@@ -78,7 +78,11 @@ pub fn command() -> Command {
                 .num_args(0..)
                 .help("Service to test via the TCP protocol; can be passed multiple times"),
         )
-        .arg(Arg::new("command").num_args(0..))
+        .arg(
+            Arg::new("command")
+                .num_args(0..)
+                .help("Command to run after waiting;\nincludes command arguments, resolved against ${PATH}"),
+        )
 }
 
 #[cfg(test)]

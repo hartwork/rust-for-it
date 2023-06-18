@@ -40,4 +40,4 @@ jobs:
 
       - name: Smoke test CLI
         run: |-
-          cargo run
+          time cargo run

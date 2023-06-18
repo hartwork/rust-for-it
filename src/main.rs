@@ -116,7 +116,7 @@ fn test_middle_main() {
     );
     assert_eq!(
         capture_main(["rust-for-it", "--version"]),
-        (0, String::from("rust-for-it 1.1.0\n"), String::new())
+        (0, String::from("rust-for-it 1.2.0\n"), String::new())
     );
 
     // Does bad usage produce exit code 2?

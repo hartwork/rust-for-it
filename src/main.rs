@@ -99,7 +99,8 @@ fn test_middle_main() {
                 Usage: rust-for-it [OPTIONS] [command]...
 
                 Arguments:
-                  [command]...  
+                  [command]...  Command to run after waiting;
+                                includes command arguments, resolved against ${PATH}
 
                 Options:
                   -q, --quiet                     Do not output any status messages

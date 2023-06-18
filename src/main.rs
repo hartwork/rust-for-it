@@ -5,7 +5,8 @@
 
 use crate::exec::run_command;
 use crate::network::{wait_for_service, TimeoutSeconds};
-use clap::ArgMatches;
+use anstream::RawStream;
+use clap::{ArgMatches, ColorChoice};
 use std::env::args_os;
 use std::ffi::OsString;
 use std::process::exit;
@@ -16,36 +17,107 @@ mod exec;
 mod network;
 
 fn main() {
-    exit(middle_main(args_os()));
+    let argv = args_os();
+    let stdout: &mut dyn RawStream = &mut std::io::stdout();
+    let stderr: &mut dyn RawStream = &mut std::io::stderr();
+    let color_choice = ColorChoice::Auto;
+    let exit_code = middle_main(argv, stdout, stderr, color_choice);
+    exit(exit_code);
 }
 
-fn middle_main<I, T>(argv: I) -> i32
+fn middle_main<I, T>(
+    argv: I,
+    stdout: &mut dyn RawStream,
+    stderr: &mut dyn RawStream,
+    color_choice: ColorChoice,
+) -> i32
 where
     // to match clap::Command.get_matches_from
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
-    let clap_result = command_line_parser::command().try_get_matches_from(argv);
+    let clap_result = command_line_parser::command()
+        .color(color_choice)
+        .try_get_matches_from(argv);
     match clap_result {
         Ok(matches) => innermost_main(matches),
         Err(e) => {
-            // This mimics clap::Error.exit minus the call to safe_exit
-            let _ = e.print();
+            let target: &mut dyn RawStream = if e.use_stderr() { stderr } else { stdout };
+            let use_color: bool = match color_choice {
+                ColorChoice::Always => true,
+                ColorChoice::Never => false,
+                ColorChoice::Auto => target.is_terminal(),
+            };
+            let rendered = e.render();
+            if use_color {
+                let _ = write!(target, "{}", rendered.ansi());
+            } else {
+                let _ = write!(target, "{}", rendered);
+            }
             e.exit_code()
         }
     }
 }
 
 #[cfg(test)]
+fn capture_main<I, T>(argv: I) -> (i32, String, String)
+where
+    // to match clap::Command.get_matches_from
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    let mut stdout = anstream::Buffer::new();
+    let mut stderr = anstream::Buffer::new();
+    let color_choice = ColorChoice::Never;
+
+    let exit_code = middle_main(argv, &mut stdout, &mut stderr, color_choice);
+
+    let stdout = String::from_utf8(stdout.as_bytes().to_vec()).expect("UTF-8 decode error");
+    let stderr = String::from_utf8(stderr.as_bytes().to_vec()).expect("UTF-8 decode error");
+
+    (exit_code, stdout, stderr)
+}
+
+#[cfg(test)]
 #[test]
 fn test_middle_main() {
+    use indoc::indoc;
     use std::net::TcpListener;
 
-    assert_eq!(middle_main(["rust-for-it", "--help"]), 0);
-    assert_eq!(middle_main(["rust-for-it", "--version"]), 0);
+    assert_eq!(
+        capture_main(["rust-for-it", "--help"]),
+        (
+            0,
+            String::from(indoc! {"
+                Wait for one or more services to be available before executing a command.
+
+                Usage: rust-for-it [OPTIONS] [command]...
+
+                Arguments:
+                  [command]...  
+
+                Options:
+                  -q, --quiet                     Do not output any status messages
+                  -S, --strict                    Only execute <command> if all services are found available [default: always executes]
+                  -t, --timeout <seconds>         Timeout in seconds, 0 for no timeout [default: 15]
+                  -s, --service [<host:port>...]  Service to test via the TCP protocol; can be passed multiple times
+                  -h, --help                      Print help
+                  -V, --version                   Print version
+                "
+            }),
+            String::new()
+        )
+    );
+    assert_eq!(
+        capture_main(["rust-for-it", "--version"]),
+        (0, String::from("rust-for-it 1.1.0\n"), String::new())
+    );
 
     // Does bad usage produce exit code 2?
-    assert_eq!(middle_main(["rust-for-it", "--no-such-argument"]), 2);
+    assert!(matches!(
+        capture_main(["rust-for-it", "--no-such-argument"]),
+        (2, _, _)
+    ));
 
     let port;
     {
@@ -53,14 +125,14 @@ fn test_middle_main() {
         port = listener.local_addr().unwrap().port();
 
         // Do available services produce exit code 0?
-        assert_eq!(
-            middle_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
-            0,
-        );
+        assert!(matches!(
+            capture_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
+            (0, _, _)
+        ));
 
         // Is the exit code forwarded properly?
-        assert_eq!(
-            middle_main([
+        assert!(matches!(
+            capture_main([
                 "rust-for-it",
                 "-s",
                 format!("127.0.0.1:{port}").as_str(),
@@ -69,12 +141,12 @@ fn test_middle_main() {
                 "-c",
                 "exit 123"
             ]),
-            123,
-        );
+            (123, _, _)
+        ));
 
         // Is the command executed and the exit code forwarded properly even with --strict?
-        assert_eq!(
-            middle_main([
+        assert!(matches!(
+            capture_main([
                 "rust-for-it",
                 "--strict",
                 "-s",
@@ -84,24 +156,24 @@ fn test_middle_main() {
                 "-c",
                 "exit 123"
             ]),
-            123,
-        );
+            (123, _, _)
+        ));
 
         // NOTE: The listener stops listening when going out of scope
     }
 
     // Do unavailable services produce exit code 1?
-    assert_eq!(
-        middle_main([
+    assert!(matches!(
+        capture_main([
             "rust-for-it",
             "-t1",
             "-s",
             format!("127.0.0.1:{port}").as_str()
         ]),
-        1,
-    );
-    assert_eq!(
-        middle_main([
+        (1, _, _)
+    ));
+    assert!(matches!(
+        capture_main([
             "rust-for-it",
             "-t1",
             "-s",
@@ -111,12 +183,12 @@ fn test_middle_main() {
             "-c",
             "exit 123"
         ]),
-        123,
-    );
+        (123, _, _)
+    ));
 
     // Does --strict prevent the execution of the command properly?
-    assert_eq!(
-        middle_main([
+    assert!(matches!(
+        capture_main([
             "rust-for-it",
             "--strict",
             "-t1",
@@ -127,8 +199,8 @@ fn test_middle_main() {
             "-c",
             "exit 123"
         ]),
-        1,
-    );
+        (1, _, _)
+    ));
 }
 
 fn innermost_main(matches: ArgMatches) -> i32 {

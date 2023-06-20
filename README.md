@@ -55,7 +55,8 @@ Wait for one or more services to be available before executing a command.
 Usage: rust-for-it [OPTIONS] [command]...
 
 Arguments:
-  [command]...  
+  [command]...  Command to run after waiting;
+                includes command arguments, resolved against ${PATH}
 
 Options:
   -q, --quiet                     Do not output any status messages

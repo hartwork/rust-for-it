@@ -85,14 +85,15 @@ Options:
 
 ### Rust
 
+- [`github.com/Etenil/wait-for-rust`](https://github.com/Etenil/wait-for-rust)
+- [`github.com/hartwork/rust-for-it`](https://github.com/hartwork/rust-for-it) — the one you are looking at
 - [`github.com/ktitaro/wait-for`](https://github.com/ktitaro/wait-for)
   — package `wait_for` [on crates.io](https://crates.io/crates/wait_for)
-- [`github.com/Etenil/wait-for-rust`](https://github.com/Etenil/wait-for-rust)
 - [`github.com/magiclen/wait-service`](https://github.com/magiclen/wait-service)
   — package `wait-service` on [crates.io](https://crates.io/crates/wait-service)
 - [`github.com/shenek/wait-for-them`](https://github.com/shenek/wait-for-them)
   — package `wait-for-them` [on crates.io](https://crates.io/crates/wait-for-them)
-- [`github.com/hartwork/rust-for-it`](https://github.com/hartwork/rust-for-it) — the one you are looking at
+
 
 ### Shell
 

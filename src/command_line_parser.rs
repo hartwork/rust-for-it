@@ -12,7 +12,7 @@ use super::network::TimeoutSeconds;
 fn parse_service_syntax(text: &str) -> Result<String, String> {
     // Note: We are not using .to_socket_addrs() here because that
     //       would do DNS queries, already.
-    static PATTERN: &str = r"^([^:]+):([1-9][0-9]{0,4})$";
+    static PATTERN: &str = r"^(\[[0-9a-fA-F.:]+\]|[^:]+):([1-9][0-9]{0,4})$";
     lazy_static! {
         static ref MATCHER: Regex = Regex::new(&PATTERN).unwrap();
     }
@@ -26,6 +26,10 @@ fn parse_service_syntax(text: &str) -> Result<String, String> {
 #[test]
 fn test_parse_service_syntax_for_valid() {
     assert_eq!(
+        parse_service_syntax("[::1]:123"),
+        Ok(String::from("[::1]:123"))
+    );
+    assert_eq!(
         parse_service_syntax("127.0.0.1:631"),
         Ok(String::from("127.0.0.1:631"))
     );
@@ -36,7 +40,7 @@ fn test_parse_service_syntax_for_valid() {
 #[test]
 fn test_parse_service_syntax_for_invalid() {
     let expected_error = Err(String::from(
-        "does not match regular expression \"^([^:]+):([1-9][0-9]{0,4})$\".",
+        "does not match regular expression \"^(\\[[0-9a-fA-F.:]+\\]|[^:]+):([1-9][0-9]{0,4})$\".",
     ));
     assert_eq!(parse_service_syntax("h:123456"), expected_error);
     assert_eq!(parse_service_syntax("no colon"), expected_error);

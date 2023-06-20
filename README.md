@@ -35,8 +35,10 @@ $ rust-for-it --help
 ## Examples
 
 ```console
-$ rust-for-it -t 2 -s localhost:631 -s 127.0.0.1:631 -- echo 'CUPS is very available'
+$ rust-for-it -t 2 -s [::1]:631 -s localhost:631 -s 127.0.0.1:631 -- echo 'CUPS is very available'
 [*] Waiting 2 seconds for localhost:631...
+[*] Waiting 2 seconds for [::1]:631...
+[+] [::1]:631 is available after 0 seconds.
 [*] Waiting 2 seconds for 127.0.0.1:631...
 [+] 127.0.0.1:631 is available after 0 seconds.
 [+] localhost:631 is available after 0 seconds.

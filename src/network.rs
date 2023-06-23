@@ -3,6 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
+use crate::logging::SubLevel;
 use log::{error, info};
 use std::io;
 use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
@@ -124,9 +125,11 @@ pub(crate) fn wait_for_service(
     let forever = timeout_seconds == 0;
 
     if forever {
-        info!("[*] Waiting for {host_and_port} without a timeout...");
+        info!(target: module_path!(), sublevel = SubLevel::Starting;
+            "Waiting for {host_and_port} without a timeout...");
     } else {
-        info!("[*] Waiting {timeout_seconds} seconds for {host_and_port}...");
+        info!(target: module_path!(), sublevel = SubLevel::Starting;
+            "Waiting {timeout_seconds} seconds for {host_and_port}...");
     }
 
     let timeout = if timeout_seconds == 0 {
@@ -140,12 +143,13 @@ pub(crate) fn wait_for_service(
     match connect_result {
         Ok(_) => {
             let duration = timer.elapsed().as_secs();
-            info!("[+] {host_and_port} is available after {duration} seconds.");
+            info!(target: module_path!(), sublevel = SubLevel::Succeeded;
+            "{host_and_port} is available after {duration} seconds.");
         }
         Err(ref error) => {
             error!(
-                    "[-] {host_and_port} timed out after waiting for {timeout_seconds} seconds ({error})."
-                );
+                "{host_and_port} timed out after waiting for {timeout_seconds} seconds ({error})."
+            );
         }
     }
 

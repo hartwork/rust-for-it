@@ -119,17 +119,14 @@ fn test_wait_for_tcp_socket_for_bad() {
 pub fn wait_for_service(
     host_and_port: &str,
     timeout_seconds: TimeoutSeconds,
-    verbose: bool,
 ) -> Result<(), std::io::Error> {
     let timer = Instant::now();
     let forever = timeout_seconds == 0;
 
-    if verbose {
-        if forever {
-            info!("[*] Waiting for {host_and_port} without a timeout...");
-        } else {
-            info!("[*] Waiting {timeout_seconds} seconds for {host_and_port}...");
-        }
+    if forever {
+        info!("[*] Waiting for {host_and_port} without a timeout...");
+    } else {
+        info!("[*] Waiting {timeout_seconds} seconds for {host_and_port}...");
     }
 
     let timeout = if timeout_seconds == 0 {
@@ -140,17 +137,15 @@ pub fn wait_for_service(
 
     let connect_result = wait_for_tcp_socket(host_and_port, timeout);
 
-    if verbose {
-        match connect_result {
-            Ok(_) => {
-                let duration = timer.elapsed().as_secs();
-                info!("[+] {host_and_port} is available after {duration} seconds.");
-            }
-            Err(ref error) => {
-                error!(
+    match connect_result {
+        Ok(_) => {
+            let duration = timer.elapsed().as_secs();
+            info!("[+] {host_and_port} is available after {duration} seconds.");
+        }
+        Err(ref error) => {
+            error!(
                     "[-] {host_and_port} timed out after waiting for {timeout_seconds} seconds ({error})."
                 );
-            }
         }
     }
 
@@ -164,15 +159,9 @@ fn test_wait_for_service_for_good() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
 
-    for verbose in [true, false] {
-        for timeout_seconds in [0, 1] {
-            let wait_result = wait_for_service(
-                format!("127.0.0.1:{port}").as_str(),
-                timeout_seconds,
-                verbose,
-            );
-            assert!(wait_result.is_ok());
-        }
+    for timeout_seconds in [0, 1] {
+        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), timeout_seconds);
+        assert!(wait_result.is_ok());
     }
 }
 
@@ -187,8 +176,6 @@ fn test_wait_for_service_for_bad() {
         // NOTE: The listener stops listening when going out of scope
     }
 
-    for verbose in [true, false] {
-        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1, verbose);
-        assert!(wait_result.is_err());
-    }
+    let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1);
+    assert!(wait_result.is_err());
 }

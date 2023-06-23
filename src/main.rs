@@ -230,10 +230,8 @@ fn innermost_main(matches: ArgMatches) -> i32 {
     for host_and_port in services {
         let host_and_port = host_and_port.clone();
         let timeout_seconds = timeout_seconds.clone();
-        let verbose = verbose.clone();
 
-        let thread =
-            spawn(move || wait_for_service(&host_and_port, timeout_seconds, verbose).is_ok());
+        let thread = spawn(move || wait_for_service(&host_and_port, timeout_seconds).is_ok());
 
         threads.push(thread);
     }
@@ -249,7 +247,7 @@ fn innermost_main(matches: ArgMatches) -> i32 {
     if command_should_be_run {
         let command = command_opt.unwrap();
         let args = command_argv.map(|e| e.as_str()).collect();
-        exit_code = run_command(command, args, verbose);
+        exit_code = run_command(command, args);
     }
 
     exit_code

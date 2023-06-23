@@ -3,11 +3,51 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use log::{set_logger, set_max_level, Level, LevelFilter, Log, Metadata, Record};
+use log::{kv::ToValue, kv::Value, set_logger, set_max_level, LevelFilter, Log, Metadata, Record};
 
 static CUSTOM_LOG: CustomLog = CustomLog {};
 
 struct CustomLog {}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub(crate) enum SubLevel {
+    Starting,
+    Succeeded,
+    Failed,
+}
+
+impl From<u64> for SubLevel {
+    fn from(value: u64) -> Self {
+        match value {
+            0 => SubLevel::Starting,
+            1 => SubLevel::Succeeded,
+            _ => SubLevel::Failed,
+        }
+    }
+}
+
+impl ToValue for SubLevel {
+    fn to_value(&self) -> Value {
+        match self {
+            SubLevel::Starting => 0u64.to_value(),
+            SubLevel::Succeeded => 1u64.to_value(),
+            SubLevel::Failed => 2u64.to_value(),
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_sublevel_casting() {
+    assert_eq!(SubLevel::Starting.to_value().to_u64().unwrap(), 0);
+    assert_eq!(SubLevel::Succeeded.to_value().to_u64().unwrap(), 1);
+    assert_eq!(SubLevel::Failed.to_value().to_u64().unwrap(), 2);
+
+    assert_eq!(SubLevel::from(0), SubLevel::Starting);
+    assert_eq!(SubLevel::from(1), SubLevel::Succeeded);
+    assert_eq!(SubLevel::from(2), SubLevel::Failed);
+    assert_eq!(SubLevel::from(3), SubLevel::Failed);
+}
 
 impl Log for CustomLog {
     fn enabled(&self, _metadata: &Metadata) -> bool {
@@ -19,10 +59,22 @@ impl Log for CustomLog {
             return;
         }
 
-        if record.level() == Level::Error {
-            eprintln!("{}", record.args());
-        } else {
-            println!("{}", record.args());
+        let value: Value = record
+            .key_values()
+            .get("sublevel".into())
+            .unwrap_or(Value::from(SubLevel::Failed as u64));
+        let sublevel = SubLevel::from(value.to_u64().expect("malformed sublevel"));
+
+        match sublevel {
+            SubLevel::Starting => {
+                println!("[*] {}", record.args());
+            }
+            SubLevel::Succeeded => {
+                println!("[+] {}", record.args());
+            }
+            SubLevel::Failed => {
+                eprintln!("[-] {}", record.args());
+            }
         }
     }
 

@@ -31,15 +31,15 @@ fn process_popen_result(popen_result: PopenResult<ExitStatus>, command: &str) ->
     match popen_result {
         Ok(exit_status) => exit_code_from(exit_status),
         Err(PopenError::IoError(error)) if error.kind() == ErrorKind::PermissionDenied => {
-            error!("[-] Command '{command}' could not be run: permission denied.");
+            error!("Command '{command}' could not be run: permission denied.");
             126
         }
         Err(PopenError::IoError(error)) if error.kind() == ErrorKind::NotFound => {
-            error!("[-] Command '{command}' not found.");
+            error!("Command '{command}' not found.");
             127
         }
         Err(error) => {
-            error!("[-] Command '{command}' failed with unexpected error: {error}.");
+            error!("Command '{command}' failed with unexpected error: {error}.");
             255
         }
     }

@@ -73,7 +73,7 @@ fn test_process_popen_result() {
     );
 }
 
-pub fn run_command(command: &str, args: Vec<&str>) -> i32 {
+pub(crate) fn run_command(command: &str, args: Vec<&str>) -> i32 {
     let popen_result = Exec::cmd(command).args(args.as_slice()).join();
     process_popen_result(popen_result, command)
 }

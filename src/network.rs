@@ -9,7 +9,7 @@ use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::result::Result;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-pub type TimeoutSeconds = u64;
+pub(crate) type TimeoutSeconds = u64;
 
 fn resolve_address(host_and_port: &str, timeout: Duration) -> Result<SocketAddr, std::io::Error> {
     let timer = Instant::now();
@@ -116,7 +116,7 @@ fn test_wait_for_tcp_socket_for_bad() {
     assert!(wait_result.is_err());
 }
 
-pub fn wait_for_service(
+pub(crate) fn wait_for_service(
     host_and_port: &str,
     timeout_seconds: TimeoutSeconds,
 ) -> Result<(), std::io::Error> {

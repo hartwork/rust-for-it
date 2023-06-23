@@ -3,12 +3,12 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
+use log::{error, info};
 use std::io;
 use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::result::Result;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-
 pub type TimeoutSeconds = u64;
 
 fn resolve_address(host_and_port: &str, timeout: Duration) -> Result<SocketAddr, std::io::Error> {
@@ -126,9 +126,9 @@ pub fn wait_for_service(
 
     if verbose {
         if forever {
-            println!("[*] Waiting for {host_and_port} without a timeout...");
+            info!("[*] Waiting for {host_and_port} without a timeout...");
         } else {
-            println!("[*] Waiting {timeout_seconds} seconds for {host_and_port}...");
+            info!("[*] Waiting {timeout_seconds} seconds for {host_and_port}...");
         }
     }
 
@@ -144,10 +144,10 @@ pub fn wait_for_service(
         match connect_result {
             Ok(_) => {
                 let duration = timer.elapsed().as_secs();
-                println!("[+] {host_and_port} is available after {duration} seconds.");
+                info!("[+] {host_and_port} is available after {duration} seconds.");
             }
             Err(ref error) => {
-                println!(
+                error!(
                     "[-] {host_and_port} timed out after waiting for {timeout_seconds} seconds ({error})."
                 );
             }

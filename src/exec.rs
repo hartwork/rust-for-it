@@ -3,6 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
+use log::error;
 use std::io::ErrorKind;
 use subprocess::Exec;
 use subprocess::ExitStatus;
@@ -35,19 +36,19 @@ fn process_popen_result(
         Ok(exit_status) => exit_code_from(exit_status),
         Err(PopenError::IoError(error)) if error.kind() == ErrorKind::PermissionDenied => {
             if verbose {
-                println!("[-] Command '{command}' could not be run: permission denied.");
+                error!("[-] Command '{command}' could not be run: permission denied.");
             }
             126
         }
         Err(PopenError::IoError(error)) if error.kind() == ErrorKind::NotFound => {
             if verbose {
-                println!("[-] Command '{command}' not found.");
+                error!("[-] Command '{command}' not found.");
             }
             127
         }
         Err(error) => {
             if verbose {
-                println!("[-] Command '{command}' failed with unexpected error: {error}.");
+                error!("[-] Command '{command}' failed with unexpected error: {error}.");
             }
             255
         }

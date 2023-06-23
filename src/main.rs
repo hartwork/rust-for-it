@@ -7,6 +7,7 @@ use crate::exec::run_command;
 use crate::network::{wait_for_service, TimeoutSeconds};
 use anstream::RawStream;
 use clap::{ArgMatches, ColorChoice};
+use log::{set_max_level, LevelFilter};
 use std::env;
 use std::env::args_os;
 use std::ffi::OsString;
@@ -15,9 +16,12 @@ use std::thread::{spawn, JoinHandle};
 
 mod command_line_parser;
 mod exec;
+mod logging;
 mod network;
 
 fn main() {
+    logging::activate(LevelFilter::Info);
+
     let argv = args_os();
     let stdout: &mut dyn RawStream = &mut std::io::stdout();
     let stderr: &mut dyn RawStream = &mut std::io::stderr();
@@ -215,6 +219,10 @@ fn innermost_main(matches: ArgMatches) -> i32 {
     let verbose = !*matches.get_one::<bool>("quiet").unwrap();
     let services = matches.get_many::<String>("services").unwrap_or_default();
     let mut command_argv = matches.get_many::<String>("command").unwrap_or_default();
+
+    if !verbose {
+        set_max_level(LevelFilter::Off);
+    }
 
     let mut success = true;
     let mut threads: Vec<JoinHandle<bool>> = Vec::new();

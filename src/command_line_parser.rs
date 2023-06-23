@@ -47,7 +47,7 @@ fn test_parse_service_syntax_for_invalid() {
     assert_eq!(parse_service_syntax(":123"), expected_error);
 }
 
-pub fn command() -> Command {
+pub(crate) fn command() -> Command {
     command!()
         .arg(
             Arg::new("quiet")

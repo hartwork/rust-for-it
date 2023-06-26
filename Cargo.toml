@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 anstream = "0.3.2"
-clap = { version = "4.3.4", features = ["cargo", "color"] }
+clap = { version = "4.3.8", features = ["cargo", "color"] }
 indoc = "2.0.1"
 lazy_static = "1.4.0"
 log = { version = "0.4.19", features = ["kv_unstable"] }

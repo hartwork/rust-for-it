@@ -129,6 +129,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "extend-lifetime"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4496a6b11940ac887f09601bb2f2fe2c66485c80bc4628310c078f4b65dddba"
+
+[[package]]
 name = "hermit-abi"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -225,6 +231,7 @@ version = "2.0.0"
 dependencies = [
  "anstream",
  "clap",
+ "extend-lifetime",
  "indoc",
  "lazy_static",
  "log",

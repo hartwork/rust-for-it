@@ -3,7 +3,10 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
+use anstream::RawStream;
 use log::{kv::ToValue, kv::Value, set_logger, set_max_level, LevelFilter, Log, Metadata, Record};
+use std::io::stderr;
+use std::io::stdout;
 
 static CUSTOM_LOG: CustomLog = CustomLog {};
 
@@ -65,17 +68,21 @@ impl Log for CustomLog {
             .unwrap_or(Value::from(SubLevel::Failed as u64));
         let sublevel = SubLevel::from(value.to_u64().expect("malformed sublevel"));
 
-        match sublevel {
-            SubLevel::Starting => {
-                println!("[*] {}", record.args());
-            }
-            SubLevel::Succeeded => {
-                println!("[+] {}", record.args());
-            }
-            SubLevel::Failed => {
-                eprintln!("[-] {}", record.args());
-            }
-        }
+        let icon = match sublevel {
+            SubLevel::Starting => '*',
+            SubLevel::Succeeded => '+',
+            SubLevel::Failed => '-',
+        };
+
+        let stdout = &mut stdout();
+        let stderr = &mut stderr();
+
+        let target: &mut dyn RawStream = match sublevel {
+            SubLevel::Starting | SubLevel::Succeeded => stdout,
+            SubLevel::Failed => stderr,
+        };
+
+        let _ = writeln!(target, "[{}] {}", icon, record.args());
     }
 
     fn flush(&self) {}

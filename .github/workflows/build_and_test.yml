@@ -45,7 +45,10 @@ jobs:
 
       - name: Test
         run: |-
-          cargo test -- --test-threads 1
+          set -x
+          for i in {1..10}; do
+            cargo test -- --test-threads 1 --nocapture --color=always
+          done
 
       - name: Smoke test CLI
         run: |-

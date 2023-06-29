@@ -229,6 +229,7 @@ dependencies = [
  "indoc",
  "lazy_static",
  "log",
+ "once_cell",
  "regex",
  "subprocess",
 ]

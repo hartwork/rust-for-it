@@ -259,7 +259,7 @@ fn innermost_main(matches: ArgMatches) -> i32 {
 
     for host_and_port in services {
         let host_and_port = host_and_port.clone();
-        let timeout_seconds = timeout_seconds.clone();
+        let timeout_seconds = timeout_seconds;
 
         let thread = spawn(move || {
             with_logging_for_current_thread(|| {

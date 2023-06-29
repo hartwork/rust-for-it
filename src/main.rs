@@ -19,6 +19,8 @@ use std::sync::Mutex;
 use std::thread::{spawn, JoinHandle};
 
 use crate::exec::run_command;
+use crate::logging::with_exclusive_logging;
+use crate::logging::with_logging_for_current_thread;
 use crate::network::{wait_for_service, TimeoutSeconds};
 
 mod command_line_parser;
@@ -39,8 +41,12 @@ fn main() {
     let stderr = unsafe { extend_lifetime(stderr) };
     let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
     let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
-    logging::activate(LevelFilter::Info, stdout.clone(), stderr.clone());
-    let exit_code = middle_main(argv, stdout.clone(), stderr.clone(), color_choice);
+    let exit_code = with_exclusive_logging(
+        LevelFilter::Info,
+        stdout.clone(),
+        stderr.clone(),
+        || -> i32 { middle_main(argv, stdout, stderr, color_choice) },
+    );
     exit(exit_code);
 }
 
@@ -100,8 +106,10 @@ where
 
     let color_choice = ColorChoice::Never;
 
-    logging::activate(LevelFilter::Info, stdout.clone(), stderr.clone());
-    let exit_code = middle_main(argv, stdout.clone(), stderr.clone(), color_choice);
+    let exit_code =
+        with_exclusive_logging(LevelFilter::Info, stdout.clone(), stderr.clone(), || {
+            middle_main(argv, stdout, stderr, color_choice)
+        });
 
     let stdout = String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
     let stderr = String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
@@ -253,7 +261,11 @@ fn innermost_main(matches: ArgMatches) -> i32 {
         let host_and_port = host_and_port.clone();
         let timeout_seconds = timeout_seconds.clone();
 
-        let thread = spawn(move || wait_for_service(&host_and_port, timeout_seconds).is_ok());
+        let thread = spawn(move || {
+            with_logging_for_current_thread(|| {
+                wait_for_service(&host_and_port, timeout_seconds).is_ok()
+            })
+        });
 
         threads.push(thread);
     }

@@ -47,7 +47,7 @@ jobs:
         run: |-
           set -x
           for i in {1..10}; do
-            cargo test -- --test-threads 1 --nocapture --color=always
+            cargo test -- --test-threads 10 --nocapture --color=always
           done
 
       - name: Smoke test CLI

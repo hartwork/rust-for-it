@@ -3,16 +3,23 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use crate::exec::run_command;
-use crate::network::{wait_for_service, TimeoutSeconds};
 use anstream::RawStream;
 use clap::{ArgMatches, ColorChoice};
+use extend_lifetime::extend_lifetime;
 use log::{set_max_level, LevelFilter};
+
 use std::env;
 use std::env::args_os;
 use std::ffi::OsString;
+use std::ops::DerefMut;
 use std::process::exit;
+use std::sync::Arc;
+use std::sync::LockResult;
+use std::sync::Mutex;
 use std::thread::{spawn, JoinHandle};
+
+use crate::exec::run_command;
+use crate::network::{wait_for_service, TimeoutSeconds};
 
 mod command_line_parser;
 mod exec;
@@ -20,8 +27,6 @@ mod logging;
 mod network;
 
 fn main() {
-    logging::activate(LevelFilter::Info);
-
     let argv = args_os();
     let stdout: &mut dyn RawStream = &mut std::io::stdout();
     let stderr: &mut dyn RawStream = &mut std::io::stderr();
@@ -30,14 +35,19 @@ fn main() {
     } else {
         ColorChoice::Never
     };
-    let exit_code = middle_main(argv, stdout, stderr, color_choice);
+    let stdout = unsafe { extend_lifetime(stdout) };
+    let stderr = unsafe { extend_lifetime(stderr) };
+    let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
+    let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
+    logging::activate(LevelFilter::Info, stdout.clone(), stderr.clone());
+    let exit_code = middle_main(argv, stdout.clone(), stderr.clone(), color_choice);
     exit(exit_code);
 }
 
-fn middle_main<I, T>(
+fn middle_main<'a, I, T>(
     argv: I,
-    stdout: &mut dyn RawStream,
-    stderr: &mut dyn RawStream,
+    stdout: Arc<Mutex<&'a mut dyn RawStream>>,
+    stderr: Arc<Mutex<&'a mut dyn RawStream>>,
     color_choice: ColorChoice,
 ) -> i32
 where
@@ -51,17 +61,21 @@ where
     match clap_result {
         Ok(matches) => innermost_main(matches),
         Err(e) => {
-            let target: &mut dyn RawStream = if e.use_stderr() { stderr } else { stdout };
-            let use_color: bool = match color_choice {
-                ColorChoice::Always => true,
-                ColorChoice::Never => false,
-                ColorChoice::Auto => target.is_terminal(),
-            };
-            let rendered = e.render();
-            if use_color {
-                let _ = write!(target, "{}", rendered.ansi());
-            } else {
-                let _ = write!(target, "{}", rendered);
+            let target: Arc<Mutex<&mut dyn RawStream>> =
+                if e.use_stderr() { stderr } else { stdout };
+            if let LockResult::Ok(mut mutex_guard) = target.lock() {
+                let target: &mut dyn RawStream = *mutex_guard.deref_mut();
+                let use_color: bool = match color_choice {
+                    ColorChoice::Always => true,
+                    ColorChoice::Never => false,
+                    ColorChoice::Auto => target.is_terminal(),
+                };
+                let rendered = e.render();
+                if use_color {
+                    let _ = write!(target, "{}", rendered.ansi());
+                } else {
+                    let _ = write!(target, "{}", rendered);
+                }
             }
             e.exit_code()
         }
@@ -75,14 +89,22 @@ where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
-    let mut stdout = anstream::Buffer::new();
-    let mut stderr = anstream::Buffer::new();
+    let mut stdout_buffer = anstream::Buffer::new();
+    let mut stderr_buffer = anstream::Buffer::new();
+    let stdout: &mut dyn RawStream = &mut stdout_buffer;
+    let stderr: &mut dyn RawStream = &mut stderr_buffer;
+    let stdout = unsafe { extend_lifetime(stdout) };
+    let stderr = unsafe { extend_lifetime(stderr) };
+    let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
+    let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
+
     let color_choice = ColorChoice::Never;
 
-    let exit_code = middle_main(argv, &mut stdout, &mut stderr, color_choice);
+    logging::activate(LevelFilter::Info, stdout.clone(), stderr.clone());
+    let exit_code = middle_main(argv, stdout.clone(), stderr.clone(), color_choice);
 
-    let stdout = String::from_utf8(stdout.as_bytes().to_vec()).expect("UTF-8 decode error");
-    let stderr = String::from_utf8(stderr.as_bytes().to_vec()).expect("UTF-8 decode error");
+    let stdout = String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+    let stderr = String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
 
     (exit_code, stdout, stderr)
 }

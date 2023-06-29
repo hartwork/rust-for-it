@@ -110,6 +110,7 @@ fn test_wait_for_tcp_socket_for_bad() {
         port = listener.local_addr().unwrap().port();
         // NOTE: The listener stops listening when going out of scope
     }
+    sleep(Duration::from_millis(500));
     let wait_result = wait_for_tcp_socket(
         format!("127.0.0.1:{port}").as_str(),
         Duration::from_millis(123),

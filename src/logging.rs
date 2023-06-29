@@ -88,10 +88,6 @@ impl Log for CustomLog {
             }
         }
 
-        if !self.enabled(record.metadata()) {
-            return;
-        }
-
         let value: Value = record
             .key_values()
             .get("sublevel".into())

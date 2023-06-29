@@ -144,7 +144,7 @@ where
         log_config.stderr = Some(stderr);
     }
 
-    let res = with_logging_for_current_thread(|| inner_function());
+    let res = with_logging_for_current_thread(inner_function);
 
     set_max_level(LevelFilter::Off);
     {

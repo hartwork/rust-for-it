@@ -1,0 +1,24 @@
+# This file is part of the rust-for-it project.
+#
+# Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
+# SPDX-License-Identifier: MIT
+
+name: Enforce clippy-clean code
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 16 * * 5'  # Every Friday 4pm
+  workflow_dispatch:
+
+jobs:
+  enforce_clippy:
+    name: Enforce clippy-clean code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # v3.5.3
+
+      - name: Enforce clippy-clean code
+        run: |-
+          cargo clippy

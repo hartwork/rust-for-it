@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 use anstream::RawStream;
-use log::{
-    kv::ToValue, kv::Value, logger, set_logger, set_max_level, LevelFilter, Log, Metadata, Record,
-};
+use log::{kv::ToValue, kv::Value, set_logger, set_max_level, LevelFilter, Log, Metadata, Record};
 use once_cell::sync::Lazy;
 
 use std::collections::HashSet;
@@ -131,10 +129,11 @@ where
 
     // NOTE: set_logger only ever succeeds *once* per process lifetime
     if let Err(error) = set_logger(&CUSTOM_LOG) {
-        let already_in_place = logger() as *const _ == &CUSTOM_LOG as *const _;
-        if !already_in_place {
-            panic!("Failed to initialize logging, error {:?}.", error);
-        }
+        #[cfg(test)]
+        let _ = error;
+
+        #[cfg(not(test))]
+        panic!("Failed to initialize logging, error {:?}.", error);
     }
 
     set_max_level(max_log_level);

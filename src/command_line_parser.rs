@@ -13,7 +13,7 @@ fn parse_service_syntax(text: &str) -> Result<String, String> {
     // Note: We are not using .to_socket_addrs() here because that
     //       would do DNS queries, already.
     static PATTERN: &str = r"^(\[[0-9a-fA-F.:]+\]|[^:]+):([1-9][0-9]{0,4})$";
-    static MATCHER: Lazy<Regex> = Lazy::new(|| Regex::new(&PATTERN).unwrap());
+    static MATCHER: Lazy<Regex> = Lazy::new(|| Regex::new(PATTERN).unwrap());
     match MATCHER.find(text) {
         Some(_) => Ok(text.to_string()),
         _ => Err(format!("does not match regular expression \"{PATTERN}\".")),

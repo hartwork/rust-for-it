@@ -173,9 +173,12 @@ mod tests {
 
     use std::sync::Arc;
     use std::sync::Mutex;
+    use std::thread;
 
     use super::with_exclusive_logging;
+    use super::with_logging_for_current_thread;
     use super::SubLevel;
+    use super::INCLUDED_THREADS;
 
     #[test]
     fn test_sublevel_casting() {
@@ -226,6 +229,28 @@ mod tests {
                 [-] 44444 44444
             "}
         );
+
+        assert_eq!(actual_result, expected_result);
+    }
+
+    #[test]
+    fn test_with_logging_for_current_thread() {
+        let thread_id = thread::current().id();
+        assert!(!unsafe { INCLUDED_THREADS.lock() }
+            .unwrap()
+            .contains(&thread_id));
+
+        let expected_result = 456;
+        let actual_result = with_logging_for_current_thread(|| {
+            assert!(unsafe { INCLUDED_THREADS.lock() }
+                .unwrap()
+                .contains(&thread_id));
+            expected_result
+        });
+
+        assert!(!unsafe { INCLUDED_THREADS.lock() }
+            .unwrap()
+            .contains(&thread_id));
 
         assert_eq!(actual_result, expected_result);
     }

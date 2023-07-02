@@ -3,13 +3,16 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use crate::logging::SubLevel;
 use log::{error, info};
+
 use std::io;
 use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::result::Result;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+
+use crate::logging::SubLevel;
+
 pub(crate) type TimeoutSeconds = u64;
 
 fn resolve_address(host_and_port: &str, timeout: Duration) -> Result<SocketAddr, std::io::Error> {

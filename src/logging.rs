@@ -59,19 +59,6 @@ impl ToValue for SubLevel {
     }
 }
 
-#[cfg(test)]
-#[test]
-fn test_sublevel_casting() {
-    assert_eq!(SubLevel::Starting.to_value().to_u64().unwrap(), 0);
-    assert_eq!(SubLevel::Succeeded.to_value().to_u64().unwrap(), 1);
-    assert_eq!(SubLevel::Failed.to_value().to_u64().unwrap(), 2);
-
-    assert_eq!(SubLevel::from(0), SubLevel::Starting);
-    assert_eq!(SubLevel::from(1), SubLevel::Succeeded);
-    assert_eq!(SubLevel::from(2), SubLevel::Failed);
-    assert_eq!(SubLevel::from(3), SubLevel::Failed);
-}
-
 impl Log for CustomLog {
     fn enabled(&self, _metadata: &Metadata) -> bool {
         true
@@ -173,4 +160,23 @@ where
     }
 
     ret
+}
+
+#[cfg(test)]
+mod tests {
+    use log::kv::ToValue;
+
+    use super::SubLevel;
+
+    #[test]
+    fn test_sublevel_casting() {
+        assert_eq!(SubLevel::Starting.to_value().to_u64().unwrap(), 0);
+        assert_eq!(SubLevel::Succeeded.to_value().to_u64().unwrap(), 1);
+        assert_eq!(SubLevel::Failed.to_value().to_u64().unwrap(), 2);
+
+        assert_eq!(SubLevel::from(0), SubLevel::Starting);
+        assert_eq!(SubLevel::from(1), SubLevel::Succeeded);
+        assert_eq!(SubLevel::from(2), SubLevel::Failed);
+        assert_eq!(SubLevel::from(3), SubLevel::Failed);
+    }
 }

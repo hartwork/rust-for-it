@@ -31,23 +31,6 @@ fn resolve_address(host_and_port: &str, timeout: Duration) -> Result<SocketAddr,
     }
 }
 
-#[cfg(test)]
-#[test]
-fn test_resolve_address_for_valid() {
-    use std::net::{IpAddr, Ipv4Addr};
-    let expected_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 631);
-    assert_eq!(
-        resolve_address("127.0.0.1:631", Duration::from_secs(1)).unwrap(),
-        expected_address
-    );
-}
-
-#[cfg(test)]
-#[test]
-fn test_resolve_address_for_invalid() {
-    assert!(resolve_address("not valid syntax", Duration::from_secs(1)).is_err());
-}
-
 fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std::io::Error> {
     let timer = Instant::now();
     let address = resolve_address(host_and_port, timeout)?;
@@ -81,41 +64,6 @@ fn wait_for_tcp_socket(host_and_port: &str, timeout: Duration) -> Result<(), std
         }
         sleep(Duration::from_millis(500));
     }
-}
-
-#[cfg(test)]
-#[test]
-fn test_wait_for_tcp_socket_for_good() {
-    use std::net::TcpListener;
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = listener.local_addr().unwrap().port();
-
-    let wait_result = wait_for_tcp_socket(
-        format!("127.0.0.1:{port}").as_str(),
-        Duration::from_secs(123),
-    );
-    assert!(wait_result.is_ok());
-
-    let wait_result = wait_for_tcp_socket(format!("127.0.0.1:{port}").as_str(), Duration::MAX);
-    assert!(wait_result.is_ok());
-}
-
-#[cfg(test)]
-#[test]
-fn test_wait_for_tcp_socket_for_bad() {
-    use std::net::TcpListener;
-    let port;
-    {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        port = listener.local_addr().unwrap().port();
-        // NOTE: The listener stops listening when going out of scope
-    }
-    sleep(Duration::from_millis(500));
-    let wait_result = wait_for_tcp_socket(
-        format!("127.0.0.1:{port}").as_str(),
-        Duration::from_millis(123),
-    );
-    assert!(wait_result.is_err());
 }
 
 pub(crate) fn wait_for_service(
@@ -158,29 +106,82 @@ pub(crate) fn wait_for_service(
 }
 
 #[cfg(test)]
-#[test]
-fn test_wait_for_service_for_good() {
-    use std::net::TcpListener;
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = listener.local_addr().unwrap().port();
+mod tests {
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+    use std::thread::sleep;
+    use std::time::Duration;
 
-    for timeout_seconds in [0, 1] {
-        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), timeout_seconds);
+    use super::resolve_address;
+    use super::wait_for_service;
+    use super::wait_for_tcp_socket;
+
+    #[test]
+    fn test_resolve_address_for_valid() {
+        let expected_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 631);
+        assert_eq!(
+            resolve_address("127.0.0.1:631", Duration::from_secs(1)).unwrap(),
+            expected_address
+        );
+    }
+
+    #[test]
+    fn test_resolve_address_for_invalid() {
+        assert!(resolve_address("not valid syntax", Duration::from_secs(1)).is_err());
+    }
+
+    #[test]
+    fn test_wait_for_tcp_socket_for_good() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        let wait_result = wait_for_tcp_socket(
+            format!("127.0.0.1:{port}").as_str(),
+            Duration::from_secs(123),
+        );
+        assert!(wait_result.is_ok());
+
+        let wait_result = wait_for_tcp_socket(format!("127.0.0.1:{port}").as_str(), Duration::MAX);
         assert!(wait_result.is_ok());
     }
-}
 
-#[cfg(test)]
-#[test]
-fn test_wait_for_service_for_bad() {
-    use std::net::TcpListener;
-    let port;
-    {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        port = listener.local_addr().unwrap().port();
-        // NOTE: The listener stops listening when going out of scope
+    #[test]
+    fn test_wait_for_tcp_socket_for_bad() {
+        let port;
+        {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            port = listener.local_addr().unwrap().port();
+            // NOTE: The listener stops listening when going out of scope
+        }
+        sleep(Duration::from_millis(500));
+        let wait_result = wait_for_tcp_socket(
+            format!("127.0.0.1:{port}").as_str(),
+            Duration::from_millis(123),
+        );
+        assert!(wait_result.is_err());
     }
 
-    let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1);
-    assert!(wait_result.is_err());
+    #[test]
+    fn test_wait_for_service_for_good() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        for timeout_seconds in [0, 1] {
+            let wait_result =
+                wait_for_service(format!("127.0.0.1:{port}").as_str(), timeout_seconds);
+            assert!(wait_result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_wait_for_service_for_bad() {
+        let port;
+        {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            port = listener.local_addr().unwrap().port();
+            // NOTE: The listener stops listening when going out of scope
+        }
+
+        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1);
+        assert!(wait_result.is_err());
+    }
 }

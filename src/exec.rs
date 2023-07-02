@@ -4,11 +4,12 @@
 // SPDX-License-Identifier: MIT
 
 use log::error;
-use std::io::ErrorKind;
 use subprocess::Exec;
 use subprocess::ExitStatus;
 use subprocess::PopenError;
 use subprocess::Result as PopenResult;
+
+use std::io::ErrorKind;
 
 fn exit_code_from(exit_status: ExitStatus) -> i32 {
     match exit_status {

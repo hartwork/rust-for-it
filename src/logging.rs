@@ -164,9 +164,21 @@ where
 
 #[cfg(test)]
 mod tests {
+    use anstream::RawStream;
+    use extend_lifetime::extend_lifetime;
+    use indoc::indoc;
     use log::kv::ToValue;
+    use log::LevelFilter;
+    use log::{error, info};
 
+    use std::sync::Arc;
+    use std::sync::Mutex;
+    use std::thread;
+
+    use super::with_exclusive_logging;
+    use super::with_logging_for_current_thread;
     use super::SubLevel;
+    use super::INCLUDED_THREADS;
 
     #[test]
     fn test_sublevel_casting() {
@@ -178,5 +190,68 @@ mod tests {
         assert_eq!(SubLevel::from(1), SubLevel::Succeeded);
         assert_eq!(SubLevel::from(2), SubLevel::Failed);
         assert_eq!(SubLevel::from(3), SubLevel::Failed);
+    }
+
+    #[test]
+    fn test_with_exclusive_logging() {
+        let mut stdout_buffer = anstream::Buffer::new();
+        let mut stderr_buffer = anstream::Buffer::new();
+        let stdout: Arc<Mutex<&mut dyn RawStream>> =
+            Arc::new(Mutex::new(unsafe { extend_lifetime(&mut stdout_buffer) }));
+        let stderr: Arc<Mutex<&mut dyn RawStream>> =
+            Arc::new(Mutex::new(unsafe { extend_lifetime(&mut stderr_buffer) }));
+
+        let expected_result = 123;
+        let actual_result = with_exclusive_logging(LevelFilter::Info, stdout, stderr, || -> i32 {
+            info!(target: module_path!(), sublevel = SubLevel::Starting; "11111 11111");
+            info!(target: module_path!(), sublevel = SubLevel::Succeeded; "22222 22222");
+            error!("33333 33333");
+            error!("44444 44444");
+            expected_result
+        });
+
+        let stdout =
+            String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+        let stderr =
+            String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+
+        assert_eq!(
+            stdout,
+            indoc! {"
+                [*] 11111 11111
+                [+] 22222 22222
+            "}
+        );
+        assert_eq!(
+            stderr,
+            indoc! {"
+                [-] 33333 33333
+                [-] 44444 44444
+            "}
+        );
+
+        assert_eq!(actual_result, expected_result);
+    }
+
+    #[test]
+    fn test_with_logging_for_current_thread() {
+        let thread_id = thread::current().id();
+        assert!(!unsafe { INCLUDED_THREADS.lock() }
+            .unwrap()
+            .contains(&thread_id));
+
+        let expected_result = 456;
+        let actual_result = with_logging_for_current_thread(|| {
+            assert!(unsafe { INCLUDED_THREADS.lock() }
+                .unwrap()
+                .contains(&thread_id));
+            expected_result
+        });
+
+        assert!(!unsafe { INCLUDED_THREADS.lock() }
+            .unwrap()
+            .contains(&thread_id));
+
+        assert_eq!(actual_result, expected_result);
     }
 }

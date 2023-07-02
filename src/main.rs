@@ -88,161 +88,6 @@ where
     }
 }
 
-#[cfg(test)]
-fn capture_main<I, T>(argv: I) -> (i32, String, String)
-where
-    // to match clap::Command.get_matches_from
-    I: IntoIterator<Item = T>,
-    T: Into<OsString> + Clone,
-{
-    let mut stdout_buffer = anstream::Buffer::new();
-    let mut stderr_buffer = anstream::Buffer::new();
-    let stdout: &mut dyn RawStream = &mut stdout_buffer;
-    let stderr: &mut dyn RawStream = &mut stderr_buffer;
-    let stdout = unsafe { extend_lifetime(stdout) };
-    let stderr = unsafe { extend_lifetime(stderr) };
-    let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
-    let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
-
-    let color_choice = ColorChoice::Never;
-
-    let exit_code =
-        with_exclusive_logging(LevelFilter::Info, stdout.clone(), stderr.clone(), || {
-            middle_main(argv, stdout, stderr, color_choice)
-        });
-
-    let stdout = String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
-    let stderr = String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
-
-    (exit_code, stdout, stderr)
-}
-
-#[cfg(test)]
-#[test]
-fn test_middle_main() {
-    use indoc::indoc;
-    use std::net::TcpListener;
-
-    assert_eq!(
-        capture_main(["rust-for-it", "--help"]),
-        (
-            0,
-            String::from(indoc! {"
-                Wait for one or more services to be available before executing a command.
-
-                Usage: rust-for-it [OPTIONS] [command]...
-
-                Arguments:
-                  [command]...  Command to run after waiting;
-                                includes command arguments, resolved against ${PATH}
-
-                Options:
-                  -q, --quiet                     Do not output any status messages
-                  -S, --strict                    Only execute <command> if all services are found available [default: always executes]
-                  -t, --timeout <seconds>         Timeout in seconds, 0 for no timeout [default: 15]
-                  -s, --service [<host:port>...]  Service to test via the TCP protocol; can be passed multiple times
-                  -h, --help                      Print help
-                  -V, --version                   Print version
-                "
-            }),
-            String::new()
-        )
-    );
-    assert_eq!(
-        capture_main(["rust-for-it", "--version"]),
-        (0, String::from("rust-for-it 2.0.0\n"), String::new())
-    );
-
-    // Does bad usage produce exit code 2?
-    assert!(matches!(
-        capture_main(["rust-for-it", "--no-such-argument"]),
-        (2, _, _)
-    ));
-
-    let port;
-    {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        port = listener.local_addr().unwrap().port();
-
-        // Do available services produce exit code 0?
-        assert!(matches!(
-            capture_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
-            (0, _, _)
-        ));
-
-        // Is the exit code forwarded properly?
-        assert!(matches!(
-            capture_main([
-                "rust-for-it",
-                "-s",
-                format!("127.0.0.1:{port}").as_str(),
-                "--",
-                "sh",
-                "-c",
-                "exit 123"
-            ]),
-            (123, _, _)
-        ));
-
-        // Is the command executed and the exit code forwarded properly even with --strict?
-        assert!(matches!(
-            capture_main([
-                "rust-for-it",
-                "--strict",
-                "-s",
-                format!("127.0.0.1:{port}").as_str(),
-                "--",
-                "sh",
-                "-c",
-                "exit 123"
-            ]),
-            (123, _, _)
-        ));
-
-        // NOTE: The listener stops listening when going out of scope
-    }
-
-    // Do unavailable services produce exit code 1?
-    assert!(matches!(
-        capture_main([
-            "rust-for-it",
-            "-t1",
-            "-s",
-            format!("127.0.0.1:{port}").as_str()
-        ]),
-        (1, _, _)
-    ));
-    assert!(matches!(
-        capture_main([
-            "rust-for-it",
-            "-t1",
-            "-s",
-            format!("127.0.0.1:{port}").as_str(),
-            "--",
-            "sh",
-            "-c",
-            "exit 123"
-        ]),
-        (123, _, _)
-    ));
-
-    // Does --strict prevent the execution of the command properly?
-    assert!(matches!(
-        capture_main([
-            "rust-for-it",
-            "--strict",
-            "-t1",
-            "-s",
-            format!("127.0.0.1:{port}").as_str(),
-            "--",
-            "sh",
-            "-c",
-            "exit 123"
-        ]),
-        (1, _, _)
-    ));
-}
-
 fn innermost_main(matches: ArgMatches) -> i32 {
     let timeout_seconds: TimeoutSeconds = *matches.get_one("timeout_seconds").unwrap();
     let strict = *matches.get_one::<bool>("strict").unwrap();
@@ -285,4 +130,174 @@ fn innermost_main(matches: ArgMatches) -> i32 {
     }
 
     exit_code
+}
+
+#[cfg(test)]
+mod main_tests {
+    use anstream::RawStream;
+    use clap::ColorChoice;
+    use extend_lifetime::extend_lifetime;
+    use log::LevelFilter;
+
+    use std::ffi::OsString;
+    use std::sync::Arc;
+    use std::sync::Mutex;
+
+    use super::middle_main;
+    use super::with_exclusive_logging;
+
+    fn capture_main<I, T>(argv: I) -> (i32, String, String)
+    where
+        // to match clap::Command.get_matches_from
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        let mut stdout_buffer = anstream::Buffer::new();
+        let mut stderr_buffer = anstream::Buffer::new();
+        let stdout: &mut dyn RawStream = &mut stdout_buffer;
+        let stderr: &mut dyn RawStream = &mut stderr_buffer;
+        let stdout = unsafe { extend_lifetime(stdout) };
+        let stderr = unsafe { extend_lifetime(stderr) };
+        let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
+        let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
+
+        let color_choice = ColorChoice::Never;
+
+        let exit_code =
+            with_exclusive_logging(LevelFilter::Info, stdout.clone(), stderr.clone(), || {
+                middle_main(argv, stdout, stderr, color_choice)
+            });
+
+        let stdout =
+            String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+        let stderr =
+            String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+
+        (exit_code, stdout, stderr)
+    }
+
+    #[test]
+    fn test_middle_main() {
+        use indoc::indoc;
+        use std::net::TcpListener;
+
+        assert_eq!(
+            capture_main(["rust-for-it", "--help"]),
+            (
+                0,
+                String::from(indoc! {"
+                Wait for one or more services to be available before executing a command.
+
+                Usage: rust-for-it [OPTIONS] [command]...
+
+                Arguments:
+                  [command]...  Command to run after waiting;
+                                includes command arguments, resolved against ${PATH}
+
+                Options:
+                  -q, --quiet                     Do not output any status messages
+                  -S, --strict                    Only execute <command> if all services are found available [default: always executes]
+                  -t, --timeout <seconds>         Timeout in seconds, 0 for no timeout [default: 15]
+                  -s, --service [<host:port>...]  Service to test via the TCP protocol; can be passed multiple times
+                  -h, --help                      Print help
+                  -V, --version                   Print version
+                "
+                }),
+                String::new()
+            )
+        );
+        assert_eq!(
+            capture_main(["rust-for-it", "--version"]),
+            (0, String::from("rust-for-it 2.0.0\n"), String::new())
+        );
+
+        // Does bad usage produce exit code 2?
+        assert!(matches!(
+            capture_main(["rust-for-it", "--no-such-argument"]),
+            (2, _, _)
+        ));
+
+        let port;
+        {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            port = listener.local_addr().unwrap().port();
+
+            // Do available services produce exit code 0?
+            assert!(matches!(
+                capture_main(["rust-for-it", "-s", format!("127.0.0.1:{port}").as_str()]),
+                (0, _, _)
+            ));
+
+            // Is the exit code forwarded properly?
+            assert!(matches!(
+                capture_main([
+                    "rust-for-it",
+                    "-s",
+                    format!("127.0.0.1:{port}").as_str(),
+                    "--",
+                    "sh",
+                    "-c",
+                    "exit 123"
+                ]),
+                (123, _, _)
+            ));
+
+            // Is the command executed and the exit code forwarded properly even with --strict?
+            assert!(matches!(
+                capture_main([
+                    "rust-for-it",
+                    "--strict",
+                    "-s",
+                    format!("127.0.0.1:{port}").as_str(),
+                    "--",
+                    "sh",
+                    "-c",
+                    "exit 123"
+                ]),
+                (123, _, _)
+            ));
+
+            // NOTE: The listener stops listening when going out of scope
+        }
+
+        // Do unavailable services produce exit code 1?
+        assert!(matches!(
+            capture_main([
+                "rust-for-it",
+                "-t1",
+                "-s",
+                format!("127.0.0.1:{port}").as_str()
+            ]),
+            (1, _, _)
+        ));
+        assert!(matches!(
+            capture_main([
+                "rust-for-it",
+                "-t1",
+                "-s",
+                format!("127.0.0.1:{port}").as_str(),
+                "--",
+                "sh",
+                "-c",
+                "exit 123"
+            ]),
+            (123, _, _)
+        ));
+
+        // Does --strict prevent the execution of the command properly?
+        assert!(matches!(
+            capture_main([
+                "rust-for-it",
+                "--strict",
+                "-t1",
+                "-s",
+                format!("127.0.0.1:{port}").as_str(),
+                "--",
+                "sh",
+                "-c",
+                "exit 123"
+            ]),
+            (1, _, _)
+        ));
+    }
 }

@@ -94,9 +94,9 @@ pub(crate) fn wait_for_service(
 
     match connect_result {
         Ok(_) => {
-            let duration = timer.elapsed().as_secs();
+            let duration = timer.elapsed().as_secs_f32().max(0.1);
             info!(target: module_path!(), sublevel = SubLevel::Succeeded;
-            "{host_and_port} is available after {duration} seconds.");
+            "{host_and_port} is available after {duration:.1} seconds.");
         }
         Err(ref error) => {
             error!(

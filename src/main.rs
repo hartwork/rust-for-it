@@ -146,11 +146,12 @@ mod main_tests {
     use super::middle_main;
     use super::with_exclusive_logging;
 
-    fn capture_main<I, T>(argv: I) -> (i32, String, String)
+    pub(crate) fn with_output_captured<F, R>(inner_function: F) -> (R, String, String)
     where
-        // to match clap::Command.get_matches_from
-        I: IntoIterator<Item = T>,
-        T: Into<OsString> + Clone,
+        F: for<'a> FnOnce(
+            Arc<Mutex<&'a mut dyn RawStream>>,
+            Arc<Mutex<&'a mut dyn RawStream>>,
+        ) -> R,
     {
         let mut stdout_buffer = anstream::Buffer::new();
         let mut stderr_buffer = anstream::Buffer::new();
@@ -161,11 +162,9 @@ mod main_tests {
         let stdout: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stdout));
         let stderr: Arc<Mutex<&mut dyn RawStream>> = Arc::new(Mutex::new(stderr));
 
-        let color_choice = ColorChoice::Never;
-
-        let exit_code =
+        let result =
             with_exclusive_logging(LevelFilter::Info, stdout.clone(), stderr.clone(), || {
-                middle_main(argv, stdout, stderr, color_choice)
+                inner_function(stdout, stderr)
             });
 
         let stdout =
@@ -173,7 +172,18 @@ mod main_tests {
         let stderr =
             String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
 
-        (exit_code, stdout, stderr)
+        (result, stdout, stderr)
+    }
+
+    fn capture_main<I, T>(argv: I) -> (i32, String, String)
+    where
+        // to match clap::Command.get_matches_from
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        with_output_captured(|stdout, stderr| -> i32 {
+            middle_main(argv, stdout, stderr, ColorChoice::Never)
+        })
     }
 
     #[test]

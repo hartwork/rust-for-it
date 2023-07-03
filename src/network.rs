@@ -94,9 +94,9 @@ pub(crate) fn wait_for_service(
 
     match connect_result {
         Ok(_) => {
-            let duration = timer.elapsed().as_secs();
+            let duration = timer.elapsed().as_secs_f32().max(0.1);
             info!(target: module_path!(), sublevel = SubLevel::Succeeded;
-            "{host_and_port} is available after {duration} seconds.");
+            "{host_and_port} is available after {duration:.1} seconds.");
         }
         Err(ref error) => {
             error!(
@@ -110,9 +110,13 @@ pub(crate) fn wait_for_service(
 
 #[cfg(test)]
 mod tests {
+    use indoc::formatdoc;
+
     use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
     use std::thread::sleep;
     use std::time::Duration;
+
+    use crate::main_tests::with_output_captured;
 
     use super::resolve_address;
     use super::wait_for_service;
@@ -168,11 +172,32 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        for timeout_seconds in [0, 1] {
-            let wait_result =
-                wait_for_service(format!("127.0.0.1:{port}").as_str(), timeout_seconds);
-            assert!(wait_result.is_ok());
-        }
+        assert_eq!(
+            with_output_captured(|_, _| {
+                wait_for_service(format!("127.0.0.1:{port}").as_str(), 0).is_ok()
+            }),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting for 127.0.0.1:{port} without a timeout...
+                    [+] 127.0.0.1:{port} is available after 0.1 seconds.
+                "}),
+                String::new()
+            )
+        );
+        assert_eq!(
+            with_output_captured(|_, _| {
+                wait_for_service(format!("127.0.0.1:{port}").as_str(), 1).is_ok()
+            }),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting 1 seconds for 127.0.0.1:{port}...
+                    [+] 127.0.0.1:{port} is available after 0.1 seconds.
+                "}),
+                String::new()
+            )
+        );
     }
 
     #[test]
@@ -184,7 +209,24 @@ mod tests {
             // NOTE: The listener stops listening when going out of scope
         }
 
-        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1);
-        assert!(wait_result.is_err());
+        let (is_error, stdout, stderr) = with_output_captured(|_, _| {
+            wait_for_service(format!("127.0.0.1:{port}").as_str(), 1).is_err()
+        });
+        assert_eq!(
+            (is_error, stdout),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting 1 seconds for 127.0.0.1:{port}...
+                "})
+            )
+        );
+        let error_a = String::from(formatdoc! {"\
+            [-] 127.0.0.1:{port} timed out after waiting for 1 seconds (connection timed out).
+        "});
+        let error_b = String::from(formatdoc! {"\
+            [-] 127.0.0.1:{port} timed out after waiting for 1 seconds (Time is up).
+        "});
+        assert!(stderr == error_a || stderr == error_b);
     }
 }

@@ -110,9 +110,13 @@ pub(crate) fn wait_for_service(
 
 #[cfg(test)]
 mod tests {
+    use indoc::formatdoc;
+
     use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
     use std::thread::sleep;
     use std::time::Duration;
+
+    use crate::main_tests::with_output_captured;
 
     use super::resolve_address;
     use super::wait_for_service;
@@ -168,11 +172,32 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        for timeout_seconds in [0, 1] {
-            let wait_result =
-                wait_for_service(format!("127.0.0.1:{port}").as_str(), timeout_seconds);
-            assert!(wait_result.is_ok());
-        }
+        assert_eq!(
+            with_output_captured(|_, _| {
+                wait_for_service(format!("127.0.0.1:{port}").as_str(), 0).is_ok()
+            }),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting for 127.0.0.1:{port} without a timeout...
+                    [+] 127.0.0.1:{port} is available after 0.1 seconds.
+                "}),
+                String::new()
+            )
+        );
+        assert_eq!(
+            with_output_captured(|_, _| {
+                wait_for_service(format!("127.0.0.1:{port}").as_str(), 1).is_ok()
+            }),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting 1 seconds for 127.0.0.1:{port}...
+                    [+] 127.0.0.1:{port} is available after 0.1 seconds.
+                "}),
+                String::new()
+            )
+        );
     }
 
     #[test]

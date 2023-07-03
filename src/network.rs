@@ -209,7 +209,24 @@ mod tests {
             // NOTE: The listener stops listening when going out of scope
         }
 
-        let wait_result = wait_for_service(format!("127.0.0.1:{port}").as_str(), 1);
-        assert!(wait_result.is_err());
+        let (is_error, stdout, stderr) = with_output_captured(|_, _| {
+            wait_for_service(format!("127.0.0.1:{port}").as_str(), 1).is_err()
+        });
+        assert_eq!(
+            (is_error, stdout),
+            (
+                true,
+                String::from(formatdoc! {"\
+                    [*] Waiting 1 seconds for 127.0.0.1:{port}...
+                "})
+            )
+        );
+        let error_a = String::from(formatdoc! {"\
+            [-] 127.0.0.1:{port} timed out after waiting for 1 seconds (connection timed out).
+        "});
+        let error_b = String::from(formatdoc! {"\
+            [-] 127.0.0.1:{port} timed out after waiting for 1 seconds (Time is up).
+        "});
+        assert!(stderr == error_a || stderr == error_b);
     }
 }

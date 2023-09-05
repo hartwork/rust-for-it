@@ -13,7 +13,7 @@ extend-lifetime = "0.2.0"
 indoc = "2.0.3"
 log = { version = "0.4.20", features = ["kv_unstable"] }
 once_cell = "1.18.0"
-regex = "1.9.4"
+regex = "1.9.5"
 subprocess = "0.2.9"
 
 [profile.release]

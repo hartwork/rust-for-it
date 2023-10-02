@@ -194,8 +194,8 @@ mod tests {
 
     #[test]
     fn test_with_exclusive_logging() {
-        let mut stdout_buffer = anstream::Buffer::new();
-        let mut stderr_buffer = anstream::Buffer::new();
+        let mut stdout_buffer = Vec::<u8>::new();
+        let mut stderr_buffer = Vec::<u8>::new();
         let stdout: Arc<Mutex<&mut dyn RawStream>> =
             Arc::new(Mutex::new(unsafe { extend_lifetime(&mut stdout_buffer) }));
         let stderr: Arc<Mutex<&mut dyn RawStream>> =
@@ -210,10 +210,8 @@ mod tests {
             expected_result
         });
 
-        let stdout =
-            String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
-        let stderr =
-            String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+        let stdout = String::from_utf8(stdout_buffer).expect("UTF-8 decode error");
+        let stderr = String::from_utf8(stderr_buffer).expect("UTF-8 decode error");
 
         assert_eq!(
             stdout,

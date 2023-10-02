@@ -7,7 +7,7 @@ authors = ["Sebastian Pipping <sebastian@pipping.org>"]
 license = "MIT"
 
 [dependencies]
-anstream = "0.5.0"
+anstream = "0.6.4"
 clap = { version = "4.4.4", features = ["cargo", "color"] }
 extend-lifetime = "0.2.0"
 indoc = "2.0.4"

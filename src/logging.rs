@@ -3,7 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use anstream::RawStream;
+use anstream::stream::RawStream;
 use log::{kv::ToValue, kv::Value, set_logger, set_max_level, LevelFilter, Log, Metadata, Record};
 use once_cell::sync::Lazy;
 
@@ -164,7 +164,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use anstream::RawStream;
+    use anstream::stream::RawStream;
     use extend_lifetime::extend_lifetime;
     use indoc::indoc;
     use log::kv::ToValue;
@@ -194,8 +194,8 @@ mod tests {
 
     #[test]
     fn test_with_exclusive_logging() {
-        let mut stdout_buffer = anstream::Buffer::new();
-        let mut stderr_buffer = anstream::Buffer::new();
+        let mut stdout_buffer = Vec::<u8>::new();
+        let mut stderr_buffer = Vec::<u8>::new();
         let stdout: Arc<Mutex<&mut dyn RawStream>> =
             Arc::new(Mutex::new(unsafe { extend_lifetime(&mut stdout_buffer) }));
         let stderr: Arc<Mutex<&mut dyn RawStream>> =
@@ -210,10 +210,8 @@ mod tests {
             expected_result
         });
 
-        let stdout =
-            String::from_utf8(stdout_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
-        let stderr =
-            String::from_utf8(stderr_buffer.as_bytes().to_vec()).expect("UTF-8 decode error");
+        let stdout = String::from_utf8(stdout_buffer).expect("UTF-8 decode error");
+        let stderr = String::from_utf8(stderr_buffer).expect("UTF-8 decode error");
 
         assert_eq!(
             stdout,

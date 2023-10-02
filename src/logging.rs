@@ -3,7 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use anstream::RawStream;
+use anstream::stream::RawStream;
 use log::{kv::ToValue, kv::Value, set_logger, set_max_level, LevelFilter, Log, Metadata, Record};
 use once_cell::sync::Lazy;
 
@@ -164,7 +164,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use anstream::RawStream;
+    use anstream::stream::RawStream;
     use extend_lifetime::extend_lifetime;
     use indoc::indoc;
     use log::kv::ToValue;

@@ -3,7 +3,7 @@
 // Copyright (c) 2023 Sebastian Pipping <sebastian@pipping.org>
 // SPDX-License-Identifier: MIT
 
-use anstream::RawStream;
+use anstream::stream::RawStream;
 use clap::{ArgMatches, ColorChoice};
 use extend_lifetime::extend_lifetime;
 use log::{set_max_level, LevelFilter};
@@ -134,7 +134,7 @@ fn innermost_main(matches: ArgMatches) -> i32 {
 
 #[cfg(test)]
 mod main_tests {
-    use anstream::RawStream;
+    use anstream::stream::RawStream;
     use clap::ColorChoice;
     use extend_lifetime::extend_lifetime;
     use log::LevelFilter;

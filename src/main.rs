@@ -32,7 +32,7 @@ fn main() {
     let argv = args_os();
     let stdout: &mut dyn RawStream = &mut std::io::stdout();
     let stderr: &mut dyn RawStream = &mut std::io::stderr();
-    let color_choice = if env::var("NO_COLOR").unwrap_or(String::new()).is_empty() {
+    let color_choice = if env::var("NO_COLOR").unwrap_or_default().is_empty() {
         ColorChoice::Auto
     } else {
         ColorChoice::Never

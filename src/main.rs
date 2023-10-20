@@ -32,7 +32,7 @@ fn main() {
     let argv = args_os();
     let stdout: &mut dyn RawStream = &mut std::io::stdout();
     let stderr: &mut dyn RawStream = &mut std::io::stderr();
-    let color_choice = if env::var("NO_COLOR").unwrap_or(String::new()).is_empty() {
+    let color_choice = if env::var("NO_COLOR").unwrap_or_default().is_empty() {
         ColorChoice::Auto
     } else {
         ColorChoice::Never
@@ -104,8 +104,6 @@ fn innermost_main(matches: ArgMatches) -> i32 {
 
     for host_and_port in services {
         let host_and_port = host_and_port.clone();
-        let timeout_seconds = timeout_seconds;
-
         let thread = spawn(move || {
             with_logging_for_current_thread(|| {
                 wait_for_service(&host_and_port, timeout_seconds).is_ok()

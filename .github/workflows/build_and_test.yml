@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-latest, ubuntu-latest, windows-latest]
+        runs-on: [macos-latest, ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.runs-on }}
     env:
       RUSTFLAGS: "-Cinstrument-coverage -D warnings"

@@ -36,13 +36,8 @@ jobs:
           mv -v target/release/rust-for-it* .
           rm rust-for-it.d  # to not go into artifact zip file
 
-      - name: Install UPX (macOS)
-        if: runner.os == 'macOS'
-        run: |-
-          brew install upx
-
-      - name: Compress binary using UPX (Linux or macOS)
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+      - name: Compress binary using UPX (Linux)
+        if: runner.os == 'Linux'
         run: |-
           upx --best --no-lzma ./rust-for-it
 

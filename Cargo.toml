@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 anstream = "0.6.12"
-clap = { version = "4.5.15", features = ["cargo", "color"] }
+clap = { version = "4.5.18", features = ["cargo", "color"] }
 extend-lifetime = "0.2.0"
 indoc = "2.0.5"
 log = { version = "0.4.20", features = ["kv_unstable"] }

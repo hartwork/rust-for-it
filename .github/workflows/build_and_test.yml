@@ -92,6 +92,7 @@ jobs:
             # grcov needs help finding llvm-profdata, apparently
             --llvm-path "$(dirname "$(which llvm-profdata)")"
           )
+          llvm-profdata --version
           grcov "${grcov_args[@]}" -t html -o target/coverage/html .
           grcov "${grcov_args[@]}" -t markdown -o target/coverage/summary.md .
           cat target/coverage/summary.md

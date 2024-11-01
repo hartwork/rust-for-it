@@ -74,10 +74,9 @@ jobs:
           mv grcov ~/.local/bin/
           echo "${USER}/.local/bin/" >> "${GITHUB_PATH}"
 
-          # Install lcov + llvm for llvm-profdata
+          # Install llvm for llvm-profdata
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends -V \
-            lcov \
             llvm
 
       - name: Render coverage report
@@ -93,10 +92,10 @@ jobs:
             # grcov needs help finding llvm-profdata, apparently
             --llvm-path "$(dirname "$(which llvm-profdata)")"
           )
+          llvm-profdata --version
           grcov "${grcov_args[@]}" -t html -o target/coverage/html .
-          grcov "${grcov_args[@]}" -t lcov -o target/coverage/lcov .
-          lcov --list target/coverage/lcov 2>/dev/null \
-            | tee target/coverage/summary.txt
+          grcov "${grcov_args[@]}" -t markdown -o target/coverage/summary.md .
+          cat target/coverage/summary.md
 
       - name: Store coverage report
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
